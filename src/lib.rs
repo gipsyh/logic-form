@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Display},
-    ops::{Deref, DerefMut, Not},
+    ops::{Add, Deref, DerefMut, Not},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,6 +9,12 @@ pub struct Var(u32);
 impl From<u32> for Var {
     fn from(value: u32) -> Self {
         Self(value)
+    }
+}
+
+impl From<i32> for Var {
+    fn from(value: i32) -> Self {
+        Self(value as u32)
     }
 }
 
@@ -21,6 +27,14 @@ impl From<usize> for Var {
 impl From<Var> for u32 {
     fn from(value: Var) -> Self {
         value.0
+    }
+}
+
+impl Deref for Var {
+    type Target = u32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -118,9 +132,36 @@ impl DerefMut for Cube {
     }
 }
 
+impl Not for Cube {
+    type Output = Clause;
+
+    fn not(self) -> Self::Output {
+        let lits = self.lits.iter().map(|lit| !*lit).collect();
+        Clause { lits }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Cnf {
     clauses: Vec<Clause>,
+}
+
+impl Cnf {
+    pub fn new() -> Self {
+        Self {
+            clauses: Vec::new(),
+        }
+    }
+
+    pub fn add_clause(&mut self, clause: Clause) {
+        self.clauses.push(clause);
+    }
+}
+
+impl Default for Cnf {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Deref for Cnf {
@@ -137,16 +178,58 @@ impl DerefMut for Cnf {
     }
 }
 
-impl Cnf {
+#[derive(Clone, Debug)]
+pub struct Dnf {
+    cubes: Vec<Cube>,
+}
+
+impl Dnf {
     pub fn new() -> Self {
-        Self {
-            clauses: Vec::new(),
-        }
+        Self { cubes: Vec::new() }
+    }
+
+    pub fn add_cube(&mut self, cube: Cube) {
+        self.cubes.push(cube);
     }
 }
 
-impl Default for Cnf {
+impl Default for Dnf {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Deref for Dnf {
+    type Target = Vec<Cube>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.cubes
+    }
+}
+
+impl DerefMut for Dnf {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cubes
+    }
+}
+
+impl Add for Dnf {
+    type Output = Self;
+
+    fn add(mut self, mut rhs: Self) -> Self::Output {
+        self.cubes.append(&mut rhs.cubes);
+        self
+    }
+}
+
+impl Not for Dnf {
+    type Output = Cnf;
+
+    fn not(self) -> Self::Output {
+        let mut cnf = Cnf::new();
+        for cube in self.cubes {
+            cnf.add_clause(!cube);
+        }
+        cnf
     }
 }
