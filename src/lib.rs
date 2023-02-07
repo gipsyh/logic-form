@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Deref, DerefMut, Not},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Var(u32);
 
 impl From<u32> for Var {
@@ -30,6 +30,12 @@ impl From<Var> for u32 {
     }
 }
 
+impl From<Var> for usize {
+    fn from(value: Var) -> Self {
+        value.0 as usize
+    }
+}
+
 impl Deref for Var {
     type Target = u32;
 
@@ -44,12 +50,24 @@ impl Display for Var {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Lit(u32);
 
 impl From<Var> for Lit {
     fn from(value: Var) -> Self {
         Self(value.0 + value.0)
+    }
+}
+
+impl From<Lit> for u32 {
+    fn from(val: Lit) -> Self {
+        val.0
+    }
+}
+
+impl From<Lit> for usize {
+    fn from(val: Lit) -> Self {
+        val.0 as usize
     }
 }
 
@@ -91,6 +109,18 @@ pub struct Clause {
     lits: Vec<Lit>,
 }
 
+impl Clause {
+    pub fn new() -> Self {
+        Clause { lits: Vec::new() }
+    }
+}
+
+impl Default for Clause {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Deref for Clause {
     type Target = Vec<Lit>;
 
@@ -116,6 +146,18 @@ impl<const N: usize> From<[Lit; N]> for Clause {
 #[derive(Clone, Debug)]
 pub struct Cube {
     lits: Vec<Lit>,
+}
+
+impl Cube {
+    pub fn new() -> Self {
+        Cube { lits: Vec::new() }
+    }
+}
+
+impl Default for Cube {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Deref for Cube {
