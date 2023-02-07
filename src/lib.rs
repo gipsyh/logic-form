@@ -135,10 +135,16 @@ impl DerefMut for Clause {
     }
 }
 
-impl<const N: usize> From<[Lit; N]> for Clause {
-    fn from(s: [Lit; N]) -> Self {
+impl<F: Into<Vec<Lit>>> From<F> for Clause {
+    fn from(value: F) -> Self {
+        Self { lits: value.into() }
+    }
+}
+
+impl FromIterator<Lit> for Clause {
+    fn from_iter<T: IntoIterator<Item = Lit>>(iter: T) -> Self {
         Self {
-            lits: <[Lit]>::into_vec(Box::new(s)),
+            lits: Vec::from_iter(iter),
         }
     }
 }
@@ -180,6 +186,20 @@ impl Not for Cube {
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
         Clause { lits }
+    }
+}
+
+impl<F: Into<Vec<Lit>>> From<F> for Cube {
+    fn from(value: F) -> Self {
+        Self { lits: value.into() }
+    }
+}
+
+impl FromIterator<Lit> for Cube {
+    fn from_iter<T: IntoIterator<Item = Lit>>(iter: T) -> Self {
+        Self {
+            lits: Vec::from_iter(iter),
+        }
     }
 }
 
