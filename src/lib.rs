@@ -30,6 +30,12 @@ impl From<Var> for u32 {
     }
 }
 
+impl From<Var> for i32 {
+    fn from(value: Var) -> Self {
+        value.0 as i32
+    }
+}
+
 impl From<Var> for usize {
     fn from(value: Var) -> Self {
         value.0 as usize
