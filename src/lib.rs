@@ -1,9 +1,10 @@
 use std::{
+    collections::HashSet,
     fmt::{Debug, Display},
     ops::{Add, Deref, DerefMut, Not},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Var(u32);
 
 impl From<u32> for Var {
@@ -71,9 +72,21 @@ impl From<Lit> for u32 {
     }
 }
 
+impl From<Lit> for i32 {
+    fn from(val: Lit) -> Self {
+        val.0 as i32
+    }
+}
+
 impl From<Lit> for usize {
     fn from(val: Lit) -> Self {
         val.0 as usize
+    }
+}
+
+impl From<i32> for Lit {
+    fn from(value: i32) -> Self {
+        Self(value as u32)
     }
 }
 
@@ -88,6 +101,10 @@ impl Lit {
 
     pub fn compl(&self) -> bool {
         self.0 & 1 > 0
+    }
+
+    pub fn constant_lit(polarity: bool) -> Self {
+        Self::new(0.into(), polarity)
     }
 }
 
@@ -110,7 +127,7 @@ impl Debug for Lit {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Clause {
     lits: Vec<Lit>,
 }
@@ -141,6 +158,15 @@ impl DerefMut for Clause {
     }
 }
 
+impl Not for Clause {
+    type Output = Cube;
+
+    fn not(self) -> Self::Output {
+        let lits = self.lits.iter().map(|lit| !*lit).collect();
+        Cube { lits }
+    }
+}
+
 impl<F: Into<Vec<Lit>>> From<F> for Clause {
     fn from(value: F) -> Self {
         Self { lits: value.into() }
@@ -155,7 +181,7 @@ impl FromIterator<Lit> for Clause {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Cube {
     lits: Vec<Lit>,
 }
@@ -163,6 +189,12 @@ pub struct Cube {
 impl Cube {
     pub fn new() -> Self {
         Cube { lits: Vec::new() }
+    }
+
+    pub fn subsume(&self, cube: &Cube) -> bool {
+        let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
+        let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
+        x_lit_set.is_subset(&y_lit_set)
     }
 }
 
@@ -209,6 +241,16 @@ impl FromIterator<Lit> for Cube {
     }
 }
 
+impl IntoIterator for Cube {
+    type Item = Lit;
+
+    type IntoIter = std::vec::IntoIter<Lit>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.lits.into_iter()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Cnf {
     clauses: Vec<Clause>,
@@ -246,6 +288,22 @@ impl DerefMut for Cnf {
     }
 }
 
+impl<F: Into<Vec<Clause>>> From<F> for Cnf {
+    fn from(value: F) -> Self {
+        Self {
+            clauses: value.into(),
+        }
+    }
+}
+
+impl FromIterator<Clause> for Cnf {
+    fn from_iter<T: IntoIterator<Item = Clause>>(iter: T) -> Self {
+        Self {
+            clauses: Vec::from_iter(iter),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Dnf {
     cubes: Vec<Cube>,
@@ -278,6 +336,14 @@ impl Deref for Dnf {
 impl DerefMut for Dnf {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.cubes
+    }
+}
+
+impl FromIterator<Cube> for Dnf {
+    fn from_iter<T: IntoIterator<Item = Cube>>(iter: T) -> Self {
+        Self {
+            cubes: Vec::from_iter(iter),
+        }
     }
 }
 
