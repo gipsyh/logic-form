@@ -1,4 +1,7 @@
+#![feature(is_sorted)]
+
 use std::{
+    cmp::Ordering,
     collections::HashSet,
     fmt::{Debug, Display},
     ops::{Add, Deref, DerefMut, Not},
@@ -215,6 +218,22 @@ impl Deref for Cube {
 impl DerefMut for Cube {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lits
+    }
+}
+
+impl PartialOrd for Cube {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        assert!(self.is_sorted_by_key(|x| x.var()));
+        assert!(other.is_sorted_by_key(|x| x.var()));
+        let min_index = self.len().min(other.len());
+        for i in 0..min_index {
+            match self.lits[i].0.cmp(&other.lits[i].0) {
+                Ordering::Less => return Some(Ordering::Less),
+                Ordering::Equal => {}
+                std::cmp::Ordering::Greater => return Some(Ordering::Greater),
+            }
+        }
+        self.len().partial_cmp(&other.len())
     }
 }
 
