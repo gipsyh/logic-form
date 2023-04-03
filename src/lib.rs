@@ -1,5 +1,8 @@
 #![feature(is_sorted)]
 
+mod expr;
+pub use expr::*;
+
 use std::{
     cmp::Ordering,
     collections::HashSet,

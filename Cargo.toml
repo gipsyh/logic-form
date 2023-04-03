@@ -11,3 +11,4 @@ keywords = ["logic", "clause", "cube", "cnf", "dnf"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+nom = "7.1.3"
