@@ -12,3 +12,4 @@ keywords = ["logic", "clause", "cube", "cnf", "dnf"]
 
 [dependencies]
 nom = "7.1.3"
+cudd = { path = "../cudd-rs" }

@@ -2,8 +2,11 @@ mod lexer;
 mod parser;
 mod token;
 
+use cudd::{Cudd, DdNode};
+
 use self::{lexer::lex_tokens, parser::parse_tokens, token::Tokens};
 use std::{
+    collections::HashMap,
     fmt::Display,
     ops::{BitAnd, BitOr, Not},
 };
@@ -106,5 +109,32 @@ impl From<&str> for Expr {
         let tokens = lex_tokens(value).unwrap();
         let tokens = Tokens::new(&tokens);
         parse_tokens(tokens).unwrap()
+    }
+}
+
+impl Expr {
+    pub fn to_bdd(&self, cudd: &mut Cudd, symbols: &HashMap<String, usize>) -> DdNode {
+        match self {
+            Expr::Ident(ident) => cudd.ith_var(symbols[ident]),
+            Expr::LitExpr(lit) => cudd.constant(*lit),
+            Expr::PrefixExpr(op, sub_expr) => {
+                let expr_bdd = sub_expr.to_bdd(cudd, symbols);
+                match op {
+                    Prefix::Not => !expr_bdd,
+                    _ => panic!(),
+                }
+            }
+            Expr::InfixExpr(op, left, right) => {
+                let left_bdd = left.to_bdd(cudd, symbols);
+                let right_bdd = right.to_bdd(cudd, symbols);
+                match op {
+                    Infix::Or => left_bdd | right_bdd,
+                    Infix::And => left_bdd & right_bdd,
+                    Infix::Imply => !left_bdd | right_bdd,
+                    Infix::Iff => !(left_bdd ^ right_bdd),
+                    _ => todo!(),
+                }
+            }
+        }
     }
 }
