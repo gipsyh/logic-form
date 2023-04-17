@@ -2,7 +2,7 @@ mod lexer;
 mod parser;
 mod token;
 
-use cudd::{Cudd, DdNode};
+use cudd::{Bdd, Cudd};
 
 use self::{lexer::lex_tokens, parser::parse_tokens, token::Tokens};
 use std::{
@@ -113,7 +113,7 @@ impl From<&str> for Expr {
 }
 
 impl Expr {
-    pub fn to_bdd(&self, cudd: &Cudd, symbols: &HashMap<String, usize>) -> DdNode {
+    pub fn to_bdd(&self, cudd: &Cudd, symbols: &HashMap<String, usize>) -> Bdd {
         match self {
             Expr::Ident(ident) => cudd.ith_var(symbols[ident]),
             Expr::LitExpr(lit) => cudd.constant(*lit),
