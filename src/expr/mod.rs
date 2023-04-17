@@ -48,8 +48,8 @@ pub enum Infix {
 impl Display for Infix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let display = match self {
-            Infix::And => "&",
-            Infix::Or => "|",
+            Infix::And => "&&",
+            Infix::Or => "||",
             Infix::Imply => "->",
             Infix::Iff => "<->",
             Infix::LtlUntil => "U",
@@ -113,7 +113,7 @@ impl From<&str> for Expr {
 }
 
 impl Expr {
-    pub fn to_bdd(&self, cudd: &mut Cudd, symbols: &HashMap<String, usize>) -> DdNode {
+    pub fn to_bdd(&self, cudd: &Cudd, symbols: &HashMap<String, usize>) -> DdNode {
         match self {
             Expr::Ident(ident) => cudd.ith_var(symbols[ident]),
             Expr::LitExpr(lit) => cudd.constant(*lit),

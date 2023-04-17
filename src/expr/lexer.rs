@@ -17,8 +17,8 @@ macro_rules! syntax {
     };
 }
 
-syntax! {and_operator, "&", Token::And}
-syntax! {or_operator, "|", Token::Or}
+syntax! {and_operator, "&&", Token::And}
+syntax! {or_operator, "||", Token::Or}
 syntax! {not_operator, "!", Token::Not}
 syntax! {iff_operator, "<->", Token::Iff}
 syntax! {imply_operator, "->", Token::Imply}
