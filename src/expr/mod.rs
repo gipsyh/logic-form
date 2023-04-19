@@ -2,13 +2,12 @@ mod lexer;
 mod parser;
 mod token;
 
-use cudd::{Bdd, Cudd};
-
 use self::{lexer::lex_tokens, parser::parse_tokens, token::Tokens};
+use bdds::BddManager;
 use std::{
     collections::HashMap,
     fmt::Display,
-    ops::{BitAnd, BitOr, Not},
+    ops::{BitAnd, BitOr, BitXor, Not},
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -113,20 +112,29 @@ impl From<&str> for Expr {
 }
 
 impl Expr {
-    pub fn to_bdd(&self, cudd: &Cudd, symbols: &HashMap<String, usize>) -> Bdd {
+    pub fn to_bdd<BM: BddManager>(&self, manager: &BM, symbols: &HashMap<String, usize>) -> BM::Bdd
+    where
+        for<'a, 'b> &'a BM::Bdd: Not<Output = BM::Bdd>
+            + BitAnd<BM::Bdd, Output = BM::Bdd>
+            + BitAnd<&'b BM::Bdd, Output = BM::Bdd>
+            + BitOr<BM::Bdd, Output = BM::Bdd>
+            + BitOr<&'b BM::Bdd, Output = BM::Bdd>
+            + BitXor<BM::Bdd, Output = BM::Bdd>
+            + BitXor<&'b BM::Bdd, Output = BM::Bdd>,
+    {
         match self {
-            Expr::Ident(ident) => cudd.ith_var(symbols[ident]),
-            Expr::LitExpr(lit) => cudd.constant(*lit),
+            Expr::Ident(ident) => manager.ith_var(symbols[ident]),
+            Expr::LitExpr(lit) => manager.constant(*lit),
             Expr::PrefixExpr(op, sub_expr) => {
-                let expr_bdd = sub_expr.to_bdd(cudd, symbols);
+                let expr_bdd = sub_expr.to_bdd(manager, symbols);
                 match op {
                     Prefix::Not => !expr_bdd,
                     _ => panic!(),
                 }
             }
             Expr::InfixExpr(op, left, right) => {
-                let left_bdd = left.to_bdd(cudd, symbols);
-                let right_bdd = right.to_bdd(cudd, symbols);
+                let left_bdd = left.to_bdd(manager, symbols);
+                let right_bdd = right.to_bdd(manager, symbols);
                 match op {
                     Infix::Or => left_bdd | right_bdd,
                     Infix::And => left_bdd & right_bdd,
