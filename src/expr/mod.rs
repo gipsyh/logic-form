@@ -112,7 +112,7 @@ impl From<&str> for Expr {
 }
 
 impl Expr {
-    pub fn to_bdd<BM: BddManager>(&self, manager: &BM, symbols: &HashMap<String, usize>) -> BM::Bdd
+    pub fn to_bdd<BM: BddManager>(&self, manager: &BM, symbols: &HashMap<String, BM::Bdd>) -> BM::Bdd
     where
         for<'a, 'b> &'a BM::Bdd: Not<Output = BM::Bdd>
             + BitAnd<BM::Bdd, Output = BM::Bdd>
@@ -123,7 +123,7 @@ impl Expr {
             + BitXor<&'b BM::Bdd, Output = BM::Bdd>,
     {
         match self {
-            Expr::Ident(ident) => manager.ith_var(symbols[ident]),
+            Expr::Ident(ident) => symbols[ident].clone(),
             Expr::LitExpr(lit) => manager.constant(*lit),
             Expr::PrefixExpr(op, sub_expr) => {
                 let expr_bdd = sub_expr.to_bdd(manager, symbols);
