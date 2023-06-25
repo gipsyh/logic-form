@@ -202,6 +202,18 @@ impl Cube {
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
         x_lit_set.is_subset(&y_lit_set)
     }
+
+    pub fn intersection(&self, cube: &Cube) -> Cube {
+        let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
+        let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
+        Self {
+            lits: x_lit_set
+                .intersection(&y_lit_set)
+                .copied()
+                .copied()
+                .collect(),
+        }
+    }
 }
 
 impl Default for Cube {
