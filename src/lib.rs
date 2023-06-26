@@ -1,5 +1,3 @@
-#![feature(is_sorted)]
-
 mod expr;
 pub use expr::*;
 
@@ -238,8 +236,8 @@ impl DerefMut for Cube {
 
 impl PartialOrd for Cube {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        assert!(self.is_sorted_by_key(|x| x.var()));
-        assert!(other.is_sorted_by_key(|x| x.var()));
+        // assert!(self.is_sorted_by_key(|x| x.var()));
+        // assert!(other.is_sorted_by_key(|x| x.var()));
         let min_index = self.len().min(other.len());
         for i in 0..min_index {
             match self.lits[i].0.cmp(&other.lits[i].0) {
