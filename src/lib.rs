@@ -92,20 +92,20 @@ impl From<i32> for Lit {
 }
 
 impl Lit {
-    pub fn new(var: Var, compl: bool) -> Self {
-        Lit(var.0 + var.0 + compl as u32)
+    pub fn new(var: Var, polarity: bool) -> Self {
+        Lit(var.0 + var.0 + !polarity as u32)
     }
 
     pub fn var(&self) -> Var {
         Var(self.0 >> 1)
     }
 
-    pub fn compl(&self) -> bool {
-        self.0 & 1 > 0
+    pub fn polarity(&self) -> bool {
+        self.0 & 1 == 0
     }
 
     pub fn constant_lit(polarity: bool) -> Self {
-        Self::new(0.into(), polarity)
+        Self::new(0.into(), !polarity)
     }
 }
 
@@ -120,10 +120,10 @@ impl Not for Lit {
 
 impl Debug for Lit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.compl() {
-            write!(f, "-{}", self.var())
-        } else {
+        if self.polarity() {
             write!(f, "{}", self.var())
+        } else {
+            write!(f, "-{}", self.var())
         }
     }
 }
