@@ -5,6 +5,8 @@ use std::{
     ops::{Add, Deref, DerefMut, Not},
 };
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Var(u32);
 
@@ -58,7 +60,7 @@ impl Display for Var {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Lit(u32);
 
 impl From<Var> for Lit {
@@ -182,7 +184,7 @@ impl FromIterator<Lit> for Clause {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cube {
     lits: Vec<Lit>,
 }
