@@ -109,6 +109,10 @@ impl Lit {
     pub fn constant_lit(polarity: bool) -> Self {
         Self::new(0.into(), !polarity)
     }
+
+    pub fn is_constant(&self, polarity: bool) -> bool {
+        *self == Self::constant_lit(polarity)
+    }
 }
 
 impl Not for Lit {
