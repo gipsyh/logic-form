@@ -174,6 +174,15 @@ impl Not for Clause {
     }
 }
 
+impl Not for &Clause {
+    type Output = Cube;
+
+    fn not(self) -> Self::Output {
+        let lits = self.lits.iter().map(|lit| !*lit).collect();
+        Cube { lits }
+    }
+}
+
 impl<F: Into<Vec<Lit>>> From<F> for Clause {
     fn from(value: F) -> Self {
         Self { lits: value.into() }
@@ -254,6 +263,15 @@ impl PartialOrd for Cube {
 }
 
 impl Not for Cube {
+    type Output = Clause;
+
+    fn not(self) -> Self::Output {
+        let lits = self.lits.iter().map(|lit| !*lit).collect();
+        Clause { lits }
+    }
+}
+
+impl Not for &Cube {
     type Output = Clause;
 
     fn not(self) -> Self::Output {
