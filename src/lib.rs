@@ -1,3 +1,5 @@
+#![feature(is_sorted)]
+
 use std::{
     cmp::Ordering,
     collections::HashSet,
@@ -211,6 +213,24 @@ impl Cube {
         let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
         x_lit_set.is_subset(&y_lit_set)
+    }
+
+    pub fn ordered_subsume(&self, cube: &Cube) -> bool {
+        assert!(self.is_sorted_by_key(|l| l.var()));
+        assert!(cube.is_sorted_by_key(|l| l.var()));
+        if self.len() > cube.len() {
+            return false;
+        }
+        let mut j = 0;
+        for i in 0..self.len() {
+            while j < cube.len() && self[i].var() > cube[j].var() {
+                j += 1;
+            }
+            if j == cube.len() || self[i] != cube[j] {
+                return false;
+            }
+        }
+        true
     }
 
     pub fn intersection(&self, cube: &Cube) -> Cube {
