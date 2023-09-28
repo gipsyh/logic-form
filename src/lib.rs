@@ -216,8 +216,8 @@ impl Cube {
     }
 
     pub fn ordered_subsume(&self, cube: &Cube) -> bool {
-        assert!(self.is_sorted_by_key(|l| l.var()));
-        assert!(cube.is_sorted_by_key(|l| l.var()));
+        debug_assert!(self.is_sorted_by_key(|l| l.var()));
+        debug_assert!(cube.is_sorted_by_key(|l| l.var()));
         if self.len() > cube.len() {
             return false;
         }
