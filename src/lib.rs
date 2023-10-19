@@ -12,24 +12,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Var(u32);
 
-impl From<u32> for Var {
-    fn from(value: u32) -> Self {
-        Self(value)
-    }
-}
-
-impl From<i32> for Var {
-    fn from(value: i32) -> Self {
-        Self(value as u32)
-    }
-}
-
-impl From<usize> for Var {
-    fn from(value: usize) -> Self {
-        Self(value as u32)
-    }
-}
-
 impl From<Var> for u32 {
     fn from(value: Var) -> Self {
         value.0
@@ -45,6 +27,12 @@ impl From<Var> for i32 {
 impl From<Var> for usize {
     fn from(value: Var) -> Self {
         value.0 as usize
+    }
+}
+
+impl Var {
+    pub fn new(x: u32) -> Self {
+        Self(x)
     }
 }
 
@@ -96,22 +84,27 @@ impl From<i32> for Lit {
 }
 
 impl Lit {
+    #[inline]
     pub fn new(var: Var, polarity: bool) -> Self {
         Lit(var.0 + var.0 + !polarity as u32)
     }
 
+    #[inline]
     pub fn var(&self) -> Var {
         Var(self.0 >> 1)
     }
 
+    #[inline]
     pub fn polarity(&self) -> bool {
         self.0 & 1 == 0
     }
 
+    #[inline]
     pub fn constant_lit(polarity: bool) -> Self {
-        Self::new(0.into(), !polarity)
+        Self::new(Var::new(0), !polarity)
     }
 
+    #[inline]
     pub fn is_constant(&self, polarity: bool) -> bool {
         *self == Self::constant_lit(polarity)
     }
@@ -223,7 +216,7 @@ impl Cube {
         }
         let mut j = 0;
         for i in 0..self.len() {
-            while j < cube.len() && self[i].var() > cube[j].var() {
+            while j < cube.len() && self[i].0 > cube[j].0 {
                 j += 1;
             }
             if j == cube.len() || self[i] != cube[j] {
