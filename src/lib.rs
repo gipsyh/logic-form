@@ -12,6 +12,30 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Var(u32);
 
+impl Var {
+    pub fn new(x: u32) -> Self {
+        Self(x)
+    }
+}
+
+impl From<u32> for Var {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<i32> for Var {
+    fn from(value: i32) -> Self {
+        Self(value as u32)
+    }
+}
+
+impl From<usize> for Var {
+    fn from(value: usize) -> Self {
+        Self(value as u32)
+    }
+}
+
 impl From<Var> for u32 {
     fn from(value: Var) -> Self {
         value.0
@@ -27,12 +51,6 @@ impl From<Var> for i32 {
 impl From<Var> for usize {
     fn from(value: Var) -> Self {
         value.0 as usize
-    }
-}
-
-impl Var {
-    pub fn new(x: u32) -> Self {
-        Self(x)
     }
 }
 
