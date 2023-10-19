@@ -16,6 +16,10 @@ impl Var {
     pub fn new(x: usize) -> Self {
         Self(x as _)
     }
+
+    pub fn lit(&self) -> Lit {
+        (*self).into()
+    }
 }
 
 impl From<u32> for Var {
