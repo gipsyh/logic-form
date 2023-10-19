@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 pub struct Var(u32);
 
 impl Var {
-    pub fn new(x: u32) -> Self {
-        Self(x)
+    pub fn new(x: usize) -> Self {
+        Self(x as _)
     }
 }
 
