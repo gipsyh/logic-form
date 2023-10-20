@@ -282,18 +282,24 @@ impl DerefMut for Cube {
 }
 
 impl PartialOrd for Cube {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // assert!(self.is_sorted_by_key(|x| x.var()));
-        // assert!(other.is_sorted_by_key(|x| x.var()));
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Cube {
+    fn cmp(&self, other: &Self) -> Ordering {
+        debug_assert!(self.is_sorted_by_key(|x| x.var()));
+        debug_assert!(other.is_sorted_by_key(|x| x.var()));
         let min_index = self.len().min(other.len());
         for i in 0..min_index {
             match self.lits[i].0.cmp(&other.lits[i].0) {
-                Ordering::Less => return Some(Ordering::Less),
+                Ordering::Less => return Ordering::Less,
                 Ordering::Equal => {}
-                std::cmp::Ordering::Greater => return Some(Ordering::Greater),
+                Ordering::Greater => return Ordering::Greater,
             }
         }
-        self.len().partial_cmp(&other.len())
+        self.len().cmp(&other.len())
     }
 }
 
