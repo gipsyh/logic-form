@@ -259,6 +259,25 @@ impl Cube {
                 .collect(),
         }
     }
+
+    pub fn ordered_intersection(&self, cube: &Cube) -> Cube {
+        debug_assert!(self.is_sorted_by_key(|l| l.var()));
+        debug_assert!(cube.is_sorted_by_key(|l| l.var()));
+        let mut res = Cube::new();
+        let mut i = 0;
+        for l in self.iter() {
+            while i < cube.len() && cube[i] < *l {
+                i += 1;
+            }
+            if i == cube.len() {
+                break;
+            }
+            if *l == cube[i] {
+                res.push(*l);
+            }
+        }
+        res
+    }
 }
 
 impl Default for Cube {
