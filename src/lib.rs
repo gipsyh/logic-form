@@ -1,13 +1,14 @@
 #![feature(is_sorted)]
 
+mod dimacs;
+
+use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
     collections::HashSet,
     fmt::{Debug, Display},
     ops::{Add, Deref, DerefMut, Not},
 };
-
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Var(u32);
