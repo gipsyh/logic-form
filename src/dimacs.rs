@@ -1,17 +1,15 @@
 use crate::{Clause, Cnf, Lit, Var};
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-    path::Path,
-};
+use std::{fs::read_to_string, path::Path};
 
 impl Cnf {
-    pub fn from_file<P: AsRef<Path>>(file: P) -> Self {
-        let file = File::open(file).unwrap();
-        let reader = BufReader::new(file);
+    pub fn from_dimacs_file<P: AsRef<Path>>(file: P) -> Self {
+        let str = read_to_string(file).unwrap();
+        Self::from_dimacs_str(&str)
+    }
+
+    pub fn from_dimacs_str(str: &str) -> Self {
         let mut cnf = Cnf::new();
-        for line in reader.lines() {
-            let line = line.unwrap();
+        for line in str.lines() {
             let symbols: Vec<&str> = line.split_whitespace().collect();
             match symbols[0] {
                 "p" => (),
