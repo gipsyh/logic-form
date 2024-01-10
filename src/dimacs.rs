@@ -10,7 +10,7 @@ impl Cnf {
     pub fn from_dimacs_str(str: &str) -> Self {
         let mut cnf = Cnf::new();
         for line in str.lines() {
-            if &line[0..1] == "p" || &line[0..1] == "c" {
+            if line.is_empty() || &line[0..1] == "p" || &line[0..1] == "c" {
                 continue;
             }
             let mut clause: Vec<i32> = line
