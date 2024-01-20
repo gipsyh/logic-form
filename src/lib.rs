@@ -23,6 +23,12 @@ impl Var {
     }
 }
 
+impl From<Lit> for Var {
+    fn from(value: Lit) -> Self {
+        value.var()
+    }
+}
+
 impl From<u32> for Var {
     fn from(value: u32) -> Self {
         Self(value)
