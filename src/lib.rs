@@ -1,6 +1,9 @@
 #![feature(is_sorted)]
 
 mod dimacs;
+mod utils;
+
+pub use utils::*;
 
 use serde::{Deserialize, Serialize};
 use std::{
