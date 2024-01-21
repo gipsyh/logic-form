@@ -6,6 +6,12 @@ pub struct VarMap<T> {
     map: Vec<T>,
 }
 
+impl<T: Default> VarMap<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<T> Index<Var> for VarMap<T> {
     type Output = T;
 
@@ -57,6 +63,12 @@ impl<T> DerefMut for VarMap<T> {
 #[derive(Debug, Default)]
 pub struct LitMap<T> {
     map: Vec<T>,
+}
+
+impl<T: Default> LitMap<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl<T> Index<Lit> for LitMap<T> {
