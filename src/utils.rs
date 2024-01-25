@@ -1,7 +1,7 @@
 use crate::{Lit, Var};
 use std::ops::{Deref, DerefMut, Index, IndexMut};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct VarMap<T> {
     map: Vec<T>,
 }
@@ -17,14 +17,14 @@ impl<T> Index<Var> for VarMap<T> {
 
     #[inline]
     fn index(&self, index: Var) -> &Self::Output {
-        &self.map[Into::<usize>::into(index)]
+        &self.map[index.0 as usize]
     }
 }
 
 impl<T> IndexMut<Var> for VarMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Var) -> &mut Self::Output {
-        &mut self.map[Into::<usize>::into(index)]
+        &mut self.map[index.0 as usize]
     }
 }
 
@@ -33,14 +33,14 @@ impl<T> Index<Lit> for VarMap<T> {
 
     #[inline]
     fn index(&self, index: Lit) -> &Self::Output {
-        &self.map[Into::<usize>::into(index.var())]
+        &self.map[(index.0 >> 1) as usize]
     }
 }
 
 impl<T> IndexMut<Lit> for VarMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
-        &mut self.map[Into::<usize>::into(index.var())]
+        &mut self.map[(index.0 >> 1) as usize]
     }
 }
 
@@ -76,14 +76,14 @@ impl<T> Index<Lit> for LitMap<T> {
 
     #[inline]
     fn index(&self, index: Lit) -> &Self::Output {
-        &self.map[Into::<usize>::into(index)]
+        &self.map[index.0 as usize]
     }
 }
 
 impl<T> IndexMut<Lit> for LitMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
-        &mut self.map[Into::<usize>::into(index)]
+        &mut self.map[index.0 as usize]
     }
 }
 
@@ -115,6 +115,7 @@ impl LitSet {
         self.has.push(false);
     }
 
+    #[inline]
     pub fn insert(&mut self, lit: Lit) {
         if !self.has[lit] {
             self.set.push(lit);
@@ -122,10 +123,12 @@ impl LitSet {
         }
     }
 
+    #[inline]
     pub fn has(&self, lit: Lit) -> bool {
         self.has[lit]
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         for l in self.set.iter() {
             self.has[*l] = false;
