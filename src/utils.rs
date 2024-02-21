@@ -10,6 +10,11 @@ impl<T: Default> VarMap<T> {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn reserve(&mut self, var: Var) {
+        self.map
+            .resize_with(Into::<usize>::into(var) + 1, Default::default)
+    }
 }
 
 impl<T> Index<Var> for VarMap<T> {
