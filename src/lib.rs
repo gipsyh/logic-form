@@ -17,52 +17,61 @@ use std::{
 pub struct Var(u32);
 
 impl Var {
+    #[inline]
     pub fn new(x: usize) -> Self {
         Self(x as _)
     }
 
+    #[inline]
     pub fn lit(&self) -> Lit {
-        (*self).into()
+        Lit(self.0 << 1)
     }
 }
 
 impl From<Lit> for Var {
+    #[inline]
     fn from(value: Lit) -> Self {
         value.var()
     }
 }
 
 impl From<u32> for Var {
+    #[inline]
     fn from(value: u32) -> Self {
         Self(value)
     }
 }
 
 impl From<i32> for Var {
+    #[inline]
     fn from(value: i32) -> Self {
         Self(value as u32)
     }
 }
 
 impl From<usize> for Var {
+    #[inline]
     fn from(value: usize) -> Self {
         Self(value as u32)
     }
 }
 
 impl From<Var> for u32 {
+    #[inline]
     fn from(value: Var) -> Self {
         value.0
     }
 }
 
 impl From<Var> for i32 {
+    #[inline]
     fn from(value: Var) -> Self {
         value.0 as i32
     }
 }
 
 impl From<Var> for usize {
+    #[inline]
     fn from(value: Var) -> Self {
         value.0 as usize
     }
@@ -71,6 +80,7 @@ impl From<Var> for usize {
 impl Deref for Var {
     type Target = u32;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -86,30 +96,35 @@ impl Display for Var {
 pub struct Lit(u32);
 
 impl From<Var> for Lit {
+    #[inline]
     fn from(value: Var) -> Self {
-        Self(value.0 + value.0)
+        Self(value.0 << 1)
     }
 }
 
 impl From<Lit> for u32 {
+    #[inline]
     fn from(val: Lit) -> Self {
         val.0
     }
 }
 
 impl From<Lit> for i32 {
+    #[inline]
     fn from(val: Lit) -> Self {
         val.0 as i32
     }
 }
 
 impl From<Lit> for usize {
+    #[inline]
     fn from(val: Lit) -> Self {
         val.0 as usize
     }
 }
 
 impl From<i32> for Lit {
+    #[inline]
     fn from(value: i32) -> Self {
         Self(value as u32)
     }
@@ -145,6 +160,7 @@ impl Lit {
 impl Not for Lit {
     type Output = Self;
 
+    #[inline]
     fn not(mut self) -> Self::Output {
         self.0 ^= 1;
         self
@@ -181,12 +197,14 @@ impl Default for Clause {
 impl Deref for Clause {
     type Target = Vec<Lit>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.lits
     }
 }
 
 impl DerefMut for Clause {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lits
     }
@@ -195,6 +213,7 @@ impl DerefMut for Clause {
 impl Not for Clause {
     type Output = Cube;
 
+    #[inline]
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
         Cube { lits }
@@ -204,6 +223,7 @@ impl Not for Clause {
 impl Not for &Clause {
     type Output = Cube;
 
+    #[inline]
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
         Cube { lits }
@@ -234,12 +254,14 @@ impl Cube {
         Cube { lits: Vec::new() }
     }
 
+    #[inline]
     pub fn subsume(&self, cube: &Cube) -> bool {
         let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
         x_lit_set.is_subset(&y_lit_set)
     }
 
+    #[inline]
     pub fn ordered_subsume(&self, cube: &Cube) -> bool {
         debug_assert!(self.is_sorted_by_key(|l| l.var()));
         debug_assert!(cube.is_sorted_by_key(|l| l.var()));
@@ -258,6 +280,7 @@ impl Cube {
         true
     }
 
+    #[inline]
     pub fn intersection(&self, cube: &Cube) -> Cube {
         let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
@@ -270,6 +293,7 @@ impl Cube {
         }
     }
 
+    #[inline]
     pub fn ordered_intersection(&self, cube: &Cube) -> Cube {
         debug_assert!(self.is_sorted_by_key(|l| l.var()));
         debug_assert!(cube.is_sorted_by_key(|l| l.var()));
@@ -299,24 +323,28 @@ impl Default for Cube {
 impl Deref for Cube {
     type Target = Vec<Lit>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.lits
     }
 }
 
 impl DerefMut for Cube {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lits
     }
 }
 
 impl PartialOrd for Cube {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for Cube {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         // debug_assert!(self.is_sorted_by_key(|x| x.var()));
         // debug_assert!(other.is_sorted_by_key(|x| x.var()));
@@ -335,6 +363,7 @@ impl Ord for Cube {
 impl Not for Cube {
     type Output = Clause;
 
+    #[inline]
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
         Clause { lits }
@@ -344,6 +373,7 @@ impl Not for Cube {
 impl Not for &Cube {
     type Output = Clause;
 
+    #[inline]
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
         Clause { lits }
@@ -351,12 +381,14 @@ impl Not for &Cube {
 }
 
 impl<F: Into<Vec<Lit>>> From<F> for Cube {
+    #[inline]
     fn from(value: F) -> Self {
         Self { lits: value.into() }
     }
 }
 
 impl FromIterator<Lit> for Cube {
+    #[inline]
     fn from_iter<T: IntoIterator<Item = Lit>>(iter: T) -> Self {
         Self {
             lits: Vec::from_iter(iter),
@@ -369,6 +401,7 @@ impl IntoIterator for Cube {
 
     type IntoIter = std::vec::IntoIter<Lit>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.lits.into_iter()
     }
@@ -400,12 +433,14 @@ impl Default for Cnf {
 impl Deref for Cnf {
     type Target = Vec<Clause>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.clauses
     }
 }
 
 impl DerefMut for Cnf {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.clauses
     }
