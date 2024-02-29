@@ -1,5 +1,8 @@
 use crate::{Lit, Var};
-use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::{
+    ops::{Deref, DerefMut, Index, IndexMut},
+    slice,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct VarMap<T> {
@@ -74,6 +77,12 @@ impl<T: Default> LitMap<T> {
     pub fn new() -> Self {
         Self::default()
     }
+
+    #[inline]
+    pub fn reserve(&mut self, var: Var) {
+        self.map
+            .resize_with((Into::<usize>::into(var) + 1) * 2, Default::default)
+    }
 }
 
 impl<T> Index<Lit> for LitMap<T> {
@@ -108,6 +117,44 @@ impl<T> DerefMut for LitMap<T> {
     }
 }
 
+#[derive(Default)]
+pub struct VarSet {
+    set: Vec<Var>,
+    has: VarMap<bool>,
+}
+
+impl VarSet {
+    pub fn reserve(&mut self, var: Var) {
+        self.has.reserve(var);
+    }
+
+    #[inline]
+    pub fn has(&self, var: Var) -> bool {
+        self.has[var]
+    }
+
+    #[inline]
+    pub fn insert(&mut self, var: Var) {
+        if !self.has[var] {
+            self.set.push(var);
+            self.has[var] = true;
+        }
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        for l in self.set.iter() {
+            self.has[*l] = false;
+        }
+        self.set.clear();
+    }
+
+    #[inline]
+    pub fn iter(&self) -> slice::Iter<Var> {
+        self.set.iter()
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct LitSet {
     set: Vec<Lit>,
@@ -115,9 +162,8 @@ pub struct LitSet {
 }
 
 impl LitSet {
-    pub fn new_var(&mut self) {
-        self.has.push(false);
-        self.has.push(false);
+    pub fn reserve(&mut self, var: Var) {
+        self.has.reserve(var);
     }
 
     #[inline]
@@ -139,5 +185,10 @@ impl LitSet {
             self.has[*l] = false;
         }
         self.set.clear();
+    }
+
+    #[inline]
+    pub fn iter(&self) -> slice::Iter<Lit> {
+        self.set.iter()
     }
 }
