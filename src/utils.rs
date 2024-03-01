@@ -14,6 +14,7 @@ impl<T: Default> VarMap<T> {
         Self::default()
     }
 
+    #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.map
             .resize_with(Into::<usize>::into(var) + 1, Default::default)
@@ -25,16 +26,22 @@ impl<T> Index<Var> for VarMap<T> {
 
     #[inline]
     fn index(&self, index: Var) -> &Self::Output {
-        // &self.map[index.0 as usize]
-        unsafe { self.map.get_unchecked(index.0 as usize) }
+        if cfg!(feature = "no_bound_check") {
+            unsafe { self.map.get_unchecked(index.0 as usize) }
+        } else {
+            &self.map[index.0 as usize]
+        }
     }
 }
 
 impl<T> IndexMut<Var> for VarMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Var) -> &mut Self::Output {
-        // &mut self.map[index.0 as usize]
-        unsafe { self.map.get_unchecked_mut(index.0 as usize) }
+        if cfg!(feature = "no_bound_check") {
+            unsafe { self.map.get_unchecked_mut(index.0 as usize) }
+        } else {
+            &mut self.map[index.0 as usize]
+        }
     }
 }
 
@@ -43,16 +50,22 @@ impl<T> Index<Lit> for VarMap<T> {
 
     #[inline]
     fn index(&self, index: Lit) -> &Self::Output {
-        // &self.map[(index.0 >> 1) as usize]
-        unsafe { self.map.get_unchecked((index.0 >> 1) as usize) }
+        if cfg!(feature = "no_bound_check") {
+            unsafe { self.map.get_unchecked((index.0 >> 1) as usize) }
+        } else {
+            &self.map[(index.0 >> 1) as usize]
+        }
     }
 }
 
 impl<T> IndexMut<Lit> for VarMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
-        // &mut self.map[(index.0 >> 1) as usize]
-        unsafe { self.map.get_unchecked_mut((index.0 >> 1) as usize) }
+        if cfg!(feature = "no_bound_check") {
+            unsafe { self.map.get_unchecked_mut((index.0 >> 1) as usize) }
+        } else {
+            &mut self.map[(index.0 >> 1) as usize]
+        }
     }
 }
 
@@ -94,16 +107,22 @@ impl<T> Index<Lit> for LitMap<T> {
 
     #[inline]
     fn index(&self, index: Lit) -> &Self::Output {
-        // &self.map[index.0 as usize]
-        unsafe { self.map.get_unchecked(index.0 as usize) }
+        if cfg!(feature = "no_bound_check") {
+            unsafe { self.map.get_unchecked(index.0 as usize) }
+        } else {
+            &self.map[index.0 as usize]
+        }
     }
 }
 
 impl<T> IndexMut<Lit> for LitMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
-        // &mut self.map[index.0 as usize]
-        unsafe { self.map.get_unchecked_mut(index.0 as usize) }
+        if cfg!(feature = "no_bound_check") {
+            unsafe { self.map.get_unchecked_mut(index.0 as usize) }
+        } else {
+            &mut self.map[index.0 as usize]
+        }
     }
 }
 
@@ -130,6 +149,7 @@ pub struct VarSet {
 }
 
 impl VarSet {
+    #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.has.reserve(var);
     }
@@ -168,6 +188,7 @@ pub struct LitSet {
 }
 
 impl LitSet {
+    #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.has.reserve(var);
     }
