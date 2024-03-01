@@ -26,22 +26,24 @@ impl<T> Index<Var> for VarMap<T> {
 
     #[inline]
     fn index(&self, index: Var) -> &Self::Output {
-        if cfg!(feature = "no_bound_check") {
-            unsafe { self.map.get_unchecked(index.0 as usize) }
-        } else {
-            &self.map[index.0 as usize]
+        #[cfg(feature = "no_bound_check")]
+        unsafe {
+            self.map.get_unchecked(index.0 as usize)
         }
+        #[cfg(not(feature = "no_bound_check"))]
+        &self.map[index.0 as usize]
     }
 }
 
 impl<T> IndexMut<Var> for VarMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Var) -> &mut Self::Output {
-        if cfg!(feature = "no_bound_check") {
-            unsafe { self.map.get_unchecked_mut(index.0 as usize) }
-        } else {
-            &mut self.map[index.0 as usize]
+        #[cfg(feature = "no_bound_check")]
+        unsafe {
+            self.map.get_unchecked_mut(index.0 as usize)
         }
+        #[cfg(not(feature = "no_bound_check"))]
+        &mut self.map[index.0 as usize]
     }
 }
 
@@ -50,22 +52,24 @@ impl<T> Index<Lit> for VarMap<T> {
 
     #[inline]
     fn index(&self, index: Lit) -> &Self::Output {
-        if cfg!(feature = "no_bound_check") {
-            unsafe { self.map.get_unchecked((index.0 >> 1) as usize) }
-        } else {
-            &self.map[(index.0 >> 1) as usize]
+        #[cfg(feature = "no_bound_check")]
+        unsafe {
+            self.map.get_unchecked((index.0 >> 1) as usize)
         }
+        #[cfg(not(feature = "no_bound_check"))]
+        &self.map[(index.0 >> 1) as usize]
     }
 }
 
 impl<T> IndexMut<Lit> for VarMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
-        if cfg!(feature = "no_bound_check") {
-            unsafe { self.map.get_unchecked_mut((index.0 >> 1) as usize) }
-        } else {
-            &mut self.map[(index.0 >> 1) as usize]
+        #[cfg(feature = "no_bound_check")]
+        unsafe {
+            self.map.get_unchecked_mut((index.0 >> 1) as usize)
         }
+        #[cfg(not(feature = "no_bound_check"))]
+        &mut self.map[(index.0 >> 1) as usize]
     }
 }
 
@@ -107,22 +111,24 @@ impl<T> Index<Lit> for LitMap<T> {
 
     #[inline]
     fn index(&self, index: Lit) -> &Self::Output {
-        if cfg!(feature = "no_bound_check") {
-            unsafe { self.map.get_unchecked(index.0 as usize) }
-        } else {
-            &self.map[index.0 as usize]
+        #[cfg(feature = "no_bound_check")]
+        unsafe {
+            self.map.get_unchecked(index.0 as usize)
         }
+        #[cfg(not(feature = "no_bound_check"))]
+        &self.map[index.0 as usize]
     }
 }
 
 impl<T> IndexMut<Lit> for LitMap<T> {
     #[inline]
     fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
-        if cfg!(feature = "no_bound_check") {
-            unsafe { self.map.get_unchecked_mut(index.0 as usize) }
-        } else {
-            &mut self.map[index.0 as usize]
+        #[cfg(feature = "no_bound_check")]
+        unsafe {
+            self.map.get_unchecked_mut(index.0 as usize)
         }
+        #[cfg(not(feature = "no_bound_check"))]
+        &mut self.map[index.0 as usize]
     }
 }
 
