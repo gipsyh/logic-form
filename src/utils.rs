@@ -89,7 +89,7 @@ impl<T> DerefMut for VarMap<T> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct LitMap<T> {
     map: Vec<T>,
 }
@@ -189,7 +189,7 @@ impl VarSet {
 
 #[derive(Default, Debug)]
 pub struct LitSet {
-    set: Vec<Lit>,
+    pub set: Vec<Lit>,
     has: LitMap<bool>,
 }
 
