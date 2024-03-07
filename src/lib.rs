@@ -250,6 +250,7 @@ pub struct Cube {
 }
 
 impl Cube {
+    #[inline]
     pub fn new() -> Self {
         Cube { lits: Vec::new() }
     }
@@ -523,5 +524,71 @@ impl Not for Dnf {
             cnf.add_clause(!cube);
         }
         cnf
+    }
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Lemma {
+    cube: Cube,
+    sign: u64,
+}
+
+impl Deref for Lemma {
+    type Target = Cube;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.cube
+    }
+}
+
+impl DerefMut for Lemma {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cube
+    }
+}
+
+impl Lemma {
+    #[inline]
+    pub fn new(mut cube: Cube) -> Self {
+        cube.sort();
+        let mut sign = 0;
+        for l in cube.iter() {
+            sign |= 1 << (Into::<u32>::into(*l) % 63);
+        }
+        Self { cube, sign }
+    }
+
+    #[inline]
+    pub fn cube(&self) -> &Cube {
+        &self.cube
+    }
+
+    #[inline]
+    pub fn subsume(&self, other: &Lemma) -> bool {
+        if self.cube.len() > other.cube.len() {
+            return false;
+        }
+        if self.sign & other.sign != self.sign {
+            return false;
+        }
+        self.cube.ordered_subsume(&other.cube)
+    }
+
+    #[inline]
+    pub fn subsume_set(&self, other: &Lemma, other_lits: &HashSet<Lit>) -> bool {
+        if self.cube.len() > other.cube.len() {
+            return false;
+        }
+        if self.sign & other.sign != self.sign {
+            return false;
+        }
+        for l in self.iter() {
+            if !other_lits.contains(l) {
+                return false;
+            }
+        }
+        true
     }
 }
