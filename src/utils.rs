@@ -160,6 +160,11 @@ pub struct VarSet {
 
 impl VarSet {
     #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.has.reserve(var);
     }
@@ -198,6 +203,11 @@ pub struct LitSet {
 }
 
 impl LitSet {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.has.reserve(var);
