@@ -165,6 +165,11 @@ impl VarSet {
     }
 
     #[inline]
+    pub fn len(&self) -> u32 {
+        self.set.len() as _
+    }
+
+    #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.has.reserve(var);
     }
@@ -193,6 +198,15 @@ impl VarSet {
     #[inline]
     pub fn iter(&self) -> slice::Iter<Var> {
         self.set.iter()
+    }
+}
+
+impl Index<u32> for VarSet {
+    type Output = Var;
+
+    #[inline]
+    fn index(&self, index: u32) -> &Self::Output {
+        &self.set[index as usize]
     }
 }
 
