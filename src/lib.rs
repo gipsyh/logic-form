@@ -527,7 +527,7 @@ impl Not for Dnf {
     }
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone)]
 pub struct Lemma {
     cube: Cube,
     sign: u64,
@@ -548,6 +548,23 @@ impl DerefMut for Lemma {
         &mut self.cube
     }
 }
+
+impl PartialEq for Lemma {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        if self.sign != other.sign || self.len() != other.len() {
+            return false;
+        }
+        for i in 0..self.cube.len() {
+            if self[i] != other[i] {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl Eq for Lemma {}
 
 impl Lemma {
     #[inline]
