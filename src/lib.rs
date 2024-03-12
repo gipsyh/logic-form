@@ -577,7 +577,7 @@ impl Lemma {
     }
 
     #[inline]
-    pub fn subsume_set(&self, other: &Lemma, other_lits: &HashSet<Lit>) -> bool {
+    pub fn subsume_set(&self, other: &Lemma, other_lits: &LitSet) -> bool {
         if self.cube.len() > other.cube.len() {
             return false;
         }
@@ -585,7 +585,7 @@ impl Lemma {
             return false;
         }
         for l in self.iter() {
-            if !other_lits.contains(l) {
+            if !other_lits.has(*l) {
                 return false;
             }
         }
