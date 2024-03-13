@@ -275,8 +275,12 @@ impl VarRef {
 
     pub fn inref(&mut self, var: Var) {
         self.refs[var] += 1;
-        if self.refs[var] != 0 && !self.dirty[var] {
-            self.set.push(var)
+        if self.refs[var] != 0 {
+            if self.dirty[var] {
+                self.dirty[var] = false
+            } else {
+                self.set.push(var)
+            }
         }
     }
 
