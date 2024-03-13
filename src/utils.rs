@@ -273,9 +273,10 @@ impl VarRef {
         self.dirty.reserve(var);
     }
 
+    #[inline]
     pub fn inref(&mut self, var: Var) {
         self.refs[var] += 1;
-        if self.refs[var] != 0 {
+        if self.refs[var] == 1 {
             if self.dirty[var] {
                 self.dirty[var] = false
             } else {
@@ -310,6 +311,7 @@ pub struct VarRefIter {
 impl Iterator for VarRefIter {
     type Item = Var;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let varref = unsafe { &mut *self.varref };
         while self.p < varref.set.len() && varref.dirty[varref.set[self.p]] {
