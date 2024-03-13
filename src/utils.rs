@@ -253,3 +253,69 @@ impl LitSet {
         self.set.iter()
     }
 }
+
+#[derive(Default)]
+pub struct VarRef {
+    set: Vec<Var>,
+    refs: VarMap<u32>,
+    dirty: VarMap<bool>,
+}
+
+impl VarRef {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn reserve(&mut self, var: Var) {
+        self.refs.reserve(var);
+        self.dirty.reserve(var);
+    }
+
+    pub fn inref(&mut self, var: Var) {
+        self.refs[var] += 1;
+        if self.refs[var] != 0 && !self.dirty[var] {
+            self.set.push(var)
+        }
+    }
+
+    #[inline]
+    pub fn deref(&mut self, var: Var) {
+        assert!(self.refs[var] > 0);
+        self.refs[var] -= 1;
+        if self.refs[var] == 0 {
+            self.dirty[var] = true;
+        }
+    }
+
+    #[inline]
+    pub fn iter(&self) -> VarRefIter {
+        VarRefIter {
+            varref: self as *const VarRef as *mut VarRef,
+            p: 0,
+        }
+    }
+}
+
+pub struct VarRefIter {
+    varref: *mut VarRef,
+    p: usize,
+}
+
+impl Iterator for VarRefIter {
+    type Item = Var;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let varref = unsafe { &mut *self.varref };
+        while self.p < varref.set.len() && varref.dirty[varref.set[self.p]] {
+            varref.dirty[varref.set[self.p]] = false;
+            varref.set.swap_remove(self.p);
+        }
+        if self.p >= varref.set.len() {
+            return None;
+        }
+        self.p += 1;
+        Some(varref.set[self.p - 1])
+    }
+}
