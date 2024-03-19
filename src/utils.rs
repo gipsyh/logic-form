@@ -1,7 +1,7 @@
 use crate::{Lit, Var};
 use std::{
     ops::{Deref, DerefMut, Index, IndexMut},
-    slice,
+    ptr, slice,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -19,6 +19,15 @@ impl<T: Default> VarMap<T> {
         let len = Into::<usize>::into(var) + 1;
         if self.len() < len {
             self.map.resize_with(len, Default::default)
+        }
+    }
+
+    #[inline]
+    pub fn swap(&mut self, x: Var, y: Var) {
+        let px = ptr::addr_of_mut!(self[x]);
+        let py = ptr::addr_of_mut!(self[y]);
+        unsafe {
+            ptr::swap(px, py);
         }
     }
 }
@@ -106,6 +115,15 @@ impl<T: Default> LitMap<T> {
         let len = (Into::<usize>::into(var) + 1) * 2;
         if self.len() < len {
             self.map.resize_with(len, Default::default)
+        }
+    }
+
+    #[inline]
+    pub fn swap(&mut self, x: Lit, y: Lit) {
+        let px = ptr::addr_of_mut!(self[x]);
+        let py = ptr::addr_of_mut!(self[y]);
+        unsafe {
+            ptr::swap(px, py);
         }
     }
 }
