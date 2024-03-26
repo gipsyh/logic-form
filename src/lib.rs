@@ -381,10 +381,24 @@ impl Not for &Cube {
     }
 }
 
-impl<F: Into<Vec<Lit>>> From<F> for Cube {
+impl<const N: usize> From<[Lit; N]> for Cube {
     #[inline]
-    fn from(value: F) -> Self {
-        Self { lits: value.into() }
+    fn from(s: [Lit; N]) -> Self {
+        Self { lits: Vec::from(s) }
+    }
+}
+
+impl From<&[Lit]> for Cube {
+    #[inline]
+    fn from(s: &[Lit]) -> Self {
+        Self { lits: Vec::from(s) }
+    }
+}
+
+impl From<Cube> for Vec<Lit> {
+    #[inline]
+    fn from(val: Cube) -> Self {
+        val.lits
     }
 }
 
