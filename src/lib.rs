@@ -1,6 +1,7 @@
 #![feature(is_sorted)]
 
 mod dimacs;
+pub mod fol;
 mod utils;
 
 pub use utils::*;
