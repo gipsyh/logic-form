@@ -44,18 +44,46 @@ impl Term {
         unsafe { NUM_VAR += 1 };
         Self::new(sort, term)
     }
+}
 
-    pub fn and(&self, other: &Self) -> Self {
+impl Term {
+    #[inline]
+    pub fn biop(&self, other: &Self, op: BiOpType, sort: Sort) -> Self {
         let term = TermType::BiOp(BiOp {
-            ty: BiOpType::And,
+            ty: op,
             a: self.clone(),
             b: other.clone(),
         });
         if let Some(inner) = TERMMAP.get(&term) {
             Self { inner }
         } else {
-            Self::new(self.sort(), term)
+            Self::new(sort, term)
         }
+    }
+
+    #[inline]
+    pub fn equal(&self, other: &Self) -> Self {
+        self.biop(other, BiOpType::Eq, Sort::Bool)
+    }
+
+    #[inline]
+    pub fn not_equal(&self, other: &Self) -> Self {
+        self.biop(other, BiOpType::Neq, Sort::Bool)
+    }
+
+    #[inline]
+    pub fn and(&self, other: &Self) -> Self {
+        self.biop(other, BiOpType::And, self.sort())
+    }
+
+    #[inline]
+    pub fn or(&self, other: &Self) -> Self {
+        self.biop(other, BiOpType::Or, self.sort())
+    }
+
+    #[inline]
+    pub fn add(&self, other: &Self) -> Self {
+        self.biop(other, BiOpType::Add, self.sort())
     }
 }
 
