@@ -1,7 +1,13 @@
-use super::op::{BiOp, TriOp, UniOp};
+use super::{
+    op::{BiOp, TriOp, UniOp},
+    ExtOp, ExtOpType, TriOpType, UniOpType,
+};
 use crate::fol::{hash::TERMMAP, op::BiOpType};
 use giputils::grc::Grc;
-use std::ops::Deref;
+use std::{
+    fmt::{self, Debug},
+    ops::Deref,
+};
 
 static mut NUM_VAR: u32 = 0;
 
@@ -13,9 +19,16 @@ pub struct Term {
 impl Term {
     #[inline]
     fn new(sort: Sort, term: TermType) -> Self {
+        if let Some(inner) = TERMMAP.get(&term) {
+            return Self { inner };
+        }
         let inner = Grc::new(term.clone());
         TERMMAP.insert(term, &inner, sort);
         Self { inner }
+    }
+
+    pub fn term_id(&self) -> usize {
+        self.inner.as_ptr() as _
     }
 
     #[inline]
@@ -23,16 +36,19 @@ impl Term {
         TERMMAP.sort(self)
     }
 
+    #[inline]
     pub fn bool_const(v: bool) -> Self {
         let term = TermType::Const(Const::Bool(v));
         Self::new(Sort::Bool, term)
     }
 
+    #[inline]
     pub fn bv_const(bv: &[bool]) -> Self {
         let term = TermType::Const(Const::BV(bv.to_vec()));
         Self::new(Sort::BV(bv.len() as u32), term)
     }
 
+    #[inline]
     pub fn new_var(mut sort: Sort) -> Self {
         if let Sort::BV(w) = sort {
             assert!(w > 0);
@@ -48,42 +64,83 @@ impl Term {
 
 impl Term {
     #[inline]
-    pub fn biop(&self, other: &Self, op: BiOpType, sort: Sort) -> Self {
+    pub fn uniop(&self, op: UniOpType) -> Self {
+        let sort = self.sort();
+        let term = TermType::UniOp(UniOp {
+            ty: op,
+            a: self.clone(),
+        });
+        Self::new(sort, term)
+    }
+
+    #[inline]
+    pub fn not(&self) -> Self {
+        self.uniop(UniOpType::Not)
+    }
+
+    #[inline]
+    pub fn biop(&self, other: &Self, op: BiOpType) -> Self {
+        let sort = self.sort();
         let term = TermType::BiOp(BiOp {
             ty: op,
             a: self.clone(),
             b: other.clone(),
         });
-        if let Some(inner) = TERMMAP.get(&term) {
-            Self { inner }
-        } else {
-            Self::new(sort, term)
-        }
+        Self::new(sort, term)
     }
 
     #[inline]
     pub fn equal(&self, other: &Self) -> Self {
-        self.biop(other, BiOpType::Eq, Sort::Bool)
+        self.biop(other, BiOpType::Eq)
     }
 
     #[inline]
     pub fn not_equal(&self, other: &Self) -> Self {
-        self.biop(other, BiOpType::Neq, Sort::Bool)
+        self.biop(other, BiOpType::Neq)
     }
 
     #[inline]
     pub fn and(&self, other: &Self) -> Self {
-        self.biop(other, BiOpType::And, self.sort())
+        self.biop(other, BiOpType::And)
     }
 
     #[inline]
     pub fn or(&self, other: &Self) -> Self {
-        self.biop(other, BiOpType::Or, self.sort())
+        self.biop(other, BiOpType::Or)
     }
 
     #[inline]
     pub fn add(&self, other: &Self) -> Self {
-        self.biop(other, BiOpType::Add, self.sort())
+        self.biop(other, BiOpType::Add)
+    }
+
+    #[inline]
+    pub fn triop(&self, x: &Self, y: &Self, op: TriOpType) -> Self {
+        let sort = self.sort();
+        let term = TermType::TriOp(TriOp {
+            ty: op,
+            a: self.clone(),
+            b: x.clone(),
+            c: y.clone(),
+        });
+        Self::new(sort, term)
+    }
+
+    #[inline]
+    pub fn extop(&self, op: ExtOpType, length: u32) -> Self {
+        let sort = Sort::BV(
+            length
+                + match self.sort() {
+                    Sort::Bool => 1,
+                    Sort::BV(w) => w,
+                },
+        );
+        let term = TermType::ExtOp(ExtOp {
+            ty: op,
+            a: self.clone(),
+            length,
+        });
+        Self::new(sort, term)
     }
 }
 
@@ -100,7 +157,8 @@ impl Drop for Term {
     #[inline]
     fn drop(&mut self) {
         if self.inner.count() == 1 {
-            TERMMAP.remove(&self.inner);
+            self.inner.increment_count();
+            // TERMMAP.remove(&self.inner);
         }
     }
 }
@@ -116,6 +174,7 @@ pub enum TermType {
     UniOp(UniOp),
     BiOp(BiOp),
     TriOp(TriOp),
+    ExtOp(ExtOp),
 }
 
 unsafe impl Sync for TermType {}
@@ -132,4 +191,63 @@ pub enum Sort {
 pub enum Const {
     Bool(bool),
     BV(Vec<bool>),
+}
+
+#[derive(Clone)]
+pub struct TermCube {
+    cube: Vec<Term>,
+    term: Term,
+}
+
+impl Default for TermCube {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            cube: Default::default(),
+            term: Term::bool_const(true),
+        }
+    }
+}
+
+impl PartialEq for TermCube {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.term == other.term
+    }
+}
+
+impl Eq for TermCube {}
+
+impl Debug for TermCube {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.cube.fmt(f)
+    }
+}
+
+impl TermCube {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.cube.len()
+    }
+
+    #[inline]
+    pub fn push(&mut self, term: Term) {
+        self.term = self.term.and(&term);
+        self.cube.push(term);
+    }
+
+    #[inline]
+    pub fn cube(&self) -> &[Term] {
+        &self.cube
+    }
+
+    #[inline]
+    pub fn term(&self) -> &Term {
+        &self.term
+    }
 }

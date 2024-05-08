@@ -1,15 +1,15 @@
 use super::Term;
 
-#[derive(Debug, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "lowercase")]
 pub enum UniOpType {
     Not,
     Inc,
     Dec,
     Neg,
-    Redand,
-    Redor,
-    Redxor,
+    // Redand,
+    // Redor,
+    // Redxor,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -18,7 +18,7 @@ pub struct UniOp {
     pub a: Term,
 }
 
-#[derive(Debug, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "lowercase")]
 pub enum BiOpType {
     Iff,
@@ -71,7 +71,7 @@ pub struct BiOp {
     pub b: Term,
 }
 
-#[derive(Debug, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
 #[strum(serialize_all = "lowercase")]
 pub enum TriOpType {
     Ite,
@@ -86,26 +86,19 @@ pub struct TriOp {
     pub c: Term,
 }
 
-// /// Extension operation type.
-// #[derive(Debug, Clone, strum::EnumString, strum::Display)]
-// #[strum(serialize_all = "lowercase")]
-// pub enum ExtOpType {
-//     Sext,
-//     Uext,
-// }
+#[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
+#[strum(serialize_all = "lowercase")]
+pub enum ExtOpType {
+    Sext,
+    Uext,
+}
 
-// /// Extension operation node.
-// #[derive(Debug, Clone)]
-// pub struct ExtOp {
-//     /// Result sort.
-//     pub sid: Sid,
-//     /// Operation type.
-//     pub ty: ExtOpType,
-//     /// Operand right-side node id.
-//     pub a: Rnid,
-//     /// Length of extension.
-//     pub length: u32,
-// }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ExtOp {
+    pub ty: ExtOpType,
+    pub a: Term,
+    pub length: u32,
+}
 
 // /// Slice operation node.
 // #[derive(Debug, Clone)]

@@ -13,6 +13,7 @@ pub struct TermMap {
 }
 
 impl TermMap {
+    #[inline]
     pub fn get(&self, k: &TermType) -> Option<Grc<TermType>> {
         let p = *self.map.get(k)? as *const TermType;
         let v = Grc::from_ptr(p);
@@ -25,6 +26,7 @@ impl TermMap {
         *self.sort.get(&(term.inner.as_ptr() as _)).unwrap()
     }
 
+    #[inline]
     pub fn insert(&self, k: TermType, v: &Grc<TermType>, sort: Sort) {
         #[allow(invalid_reference_casting)]
         let s = unsafe { &mut *(&self.map as *const _ as *mut HashMap<TermType, usize>) };
