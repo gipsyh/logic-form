@@ -5,6 +5,7 @@ use super::{
 use crate::fol::{hash::TERMMAP, op::BiOpType};
 use giputils::grc::Grc;
 use std::{
+    cmp::Ordering,
     fmt::{self, Debug},
     ops::Deref,
 };
@@ -27,6 +28,7 @@ impl Term {
         Self { inner }
     }
 
+    #[inline]
     pub fn term_id(&self) -> usize {
         self.inner.as_ptr() as _
     }
@@ -163,6 +165,20 @@ impl Drop for Term {
     }
 }
 
+impl PartialOrd for Term {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.term_id().partial_cmp(&other.term_id())
+    }
+}
+
+impl Ord for Term {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.term_id().cmp(&other.term_id())
+    }
+}
+
 unsafe impl Sync for Term {}
 
 unsafe impl Send for Term {}
@@ -193,30 +209,10 @@ pub enum Const {
     BV(Vec<bool>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct TermCube {
     cube: Vec<Term>,
-    term: Term,
 }
-
-impl Default for TermCube {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            cube: Default::default(),
-            term: Term::bool_const(true),
-        }
-    }
-}
-
-impl PartialEq for TermCube {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.term == other.term
-    }
-}
-
-impl Eq for TermCube {}
 
 impl Debug for TermCube {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -237,17 +233,27 @@ impl TermCube {
 
     #[inline]
     pub fn push(&mut self, term: Term) {
-        self.term = self.term.and(&term);
-        self.cube.push(term);
+        let Err(index) = self.cube.binary_search(&term) else {
+            todo!()
+        };
+        self.cube.insert(index, term);
+        assert!(self.cube.is_sorted());
     }
 
+    pub fn term(&self) -> Term {
+        let mut term = Term::bool_const(true);
+        for l in self.iter() {
+            term = term.and(l);
+        }
+        term
+    }
+}
+
+impl Deref for TermCube {
+    type Target = [Term];
+
     #[inline]
-    pub fn cube(&self) -> &[Term] {
+    fn deref(&self) -> &Self::Target {
         &self.cube
-    }
-
-    #[inline]
-    pub fn term(&self) -> &Term {
-        &self.term
     }
 }
