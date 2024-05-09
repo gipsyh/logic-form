@@ -140,7 +140,7 @@ impl BiOp {
                 BiOpType::Umulo => todo!(),
                 BiOpType::Ssubo => todo!(),
                 BiOpType::Usubo => todo!(),
-                BiOpType::Concat => todo!(),
+                BiOpType::Concat => Sort::bv_new(a.bv_width() + b.bv_width()),
                 BiOpType::Read => todo!(),
             },
             Sort::BV(aw) => match self.ty {
@@ -164,23 +164,23 @@ impl BiOp {
                 | BiOpType::Nor
                 | BiOpType::Or
                 | BiOpType::Xnor
-                | BiOpType::Xor => {
+                | BiOpType::Xor
+                | BiOpType::Add
+                | BiOpType::Sub => {
                     assert!(a == b);
                     a
                 }
                 BiOpType::Rol => todo!(),
                 BiOpType::Ror => todo!(),
-                BiOpType::Sll => todo!(),
+                BiOpType::Sll => a,
                 BiOpType::Sra => todo!(),
                 BiOpType::Srl => todo!(),
-                BiOpType::Add => todo!(),
                 BiOpType::Mul => todo!(),
                 BiOpType::Sdiv => todo!(),
                 BiOpType::Udiv => todo!(),
                 BiOpType::Smod => todo!(),
                 BiOpType::Srem => todo!(),
                 BiOpType::Urem => todo!(),
-                BiOpType::Sub => todo!(),
                 BiOpType::Saddo => todo!(),
                 BiOpType::Uaddo => todo!(),
                 BiOpType::Sdivo => todo!(),
@@ -189,7 +189,7 @@ impl BiOp {
                 BiOpType::Umulo => todo!(),
                 BiOpType::Ssubo => todo!(),
                 BiOpType::Usubo => todo!(),
-                BiOpType::Concat => todo!(),
+                BiOpType::Concat => Sort::bv_new(a.bv_width() + b.bv_width()),
                 BiOpType::Read => todo!(),
             },
         }
@@ -224,7 +224,10 @@ impl TriOp {
                 }
                 TriOpType::Write => todo!(),
             },
-            Sort::BV(_) => todo!(),
+            Sort::BV(w) => {
+                dbg!(w);
+                todo!()
+            }
         }
     }
 }
@@ -244,15 +247,10 @@ pub struct ExtOp {
 }
 
 impl ExtOp {
+    #[inline]
     pub fn sort(&self) -> Sort {
         let a = self.a.sort();
-        Sort::BV(
-            self.length
-                + match a {
-                    Sort::Bool => 1,
-                    Sort::BV(w) => w,
-                },
-        )
+        Sort::bv_new(self.length + a.bv_width())
     }
 }
 
@@ -265,6 +263,6 @@ pub struct SliceOp {
 
 impl SliceOp {
     pub fn sort(&self) -> Sort {
-        Sort::BV(self.upper - self.lower + 1)
+        Sort::bv_new(self.upper - self.lower + 1)
     }
 }

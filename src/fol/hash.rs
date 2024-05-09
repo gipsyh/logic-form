@@ -39,6 +39,7 @@ impl TermMap {
 
     #[inline]
     pub fn remove(&self, term: &TermType) {
+        todo!();
         #[allow(invalid_reference_casting)]
         let s = unsafe { &mut *(&self.map as *const _ as *mut HashMap<TermType, usize>) };
         let v = s.remove(term).unwrap();

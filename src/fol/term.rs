@@ -46,6 +46,9 @@ impl Term {
 
     #[inline]
     pub fn bv_const(bv: &[bool]) -> Self {
+        if bv.len() == 1 {
+            return Self::bool_const(bv[0]);
+        }
         let term = TermType::Const(Const::BV(bv.to_vec()));
         Self::new(Sort::BV(bv.len() as u32), term)
     }
@@ -178,7 +181,7 @@ impl Drop for Term {
 impl PartialOrd for Term {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.term_id().partial_cmp(&other.term_id())
+        Some(self.cmp(other))
     }
 }
 
@@ -212,6 +215,26 @@ unsafe impl Send for TermType {}
 pub enum Sort {
     Bool,
     BV(u32),
+}
+
+impl Sort {
+    #[inline]
+    pub fn bv_new(w: u32) -> Sort {
+        assert!(w > 0);
+        if w == 1 {
+            Sort::Bool
+        } else {
+            Sort::BV(w)
+        }
+    }
+
+    #[inline]
+    pub fn bv_width(&self) -> u32 {
+        match self {
+            Sort::Bool => 1,
+            Sort::BV(w) => *w,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
