@@ -348,11 +348,11 @@ impl PartialOrd for Cube {
 impl Ord for Cube {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        // debug_assert!(self.is_sorted_by_key(|x| x.var()));
-        // debug_assert!(other.is_sorted_by_key(|x| x.var()));
+        debug_assert!(self.is_sorted_by_key(|x| x.var()));
+        debug_assert!(other.is_sorted_by_key(|x| x.var()));
         let min_index = self.len().min(other.len());
         for i in 0..min_index {
-            match self.lits[i].0.cmp(&other.lits[i].0) {
+            match self[i].0.cmp(&other[i].0) {
                 Ordering::Less => return Ordering::Less,
                 Ordering::Equal => {}
                 Ordering::Greater => return Ordering::Greater,

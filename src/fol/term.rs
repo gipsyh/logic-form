@@ -1,13 +1,13 @@
 use super::{
     op::{BiOp, TriOp, UniOp},
-    ExtOp, ExtOpType, TriOpType, UniOpType,
+    ExtOp, ExtOpType, SliceOp, TriOpType, UniOpType,
 };
 use crate::fol::{hash::TERMMAP, op::BiOpType};
 use giputils::grc::Grc;
 use std::{
     cmp::Ordering,
     fmt::{self, Debug},
-    ops::Deref,
+    ops::{Deref, DerefMut},
 };
 
 static mut NUM_VAR: u32 = 0;
@@ -67,11 +67,12 @@ impl Term {
 impl Term {
     #[inline]
     pub fn uniop(&self, op: UniOpType) -> Self {
-        let sort = self.sort();
-        let term = TermType::UniOp(UniOp {
+        let op = UniOp {
             ty: op,
             a: self.clone(),
-        });
+        };
+        let sort = op.sort();
+        let term = TermType::UniOp(op);
         Self::new(sort, term)
     }
 
@@ -82,12 +83,13 @@ impl Term {
 
     #[inline]
     pub fn biop(&self, other: &Self, op: BiOpType) -> Self {
-        let sort = self.sort();
-        let term = TermType::BiOp(BiOp {
+        let op = BiOp {
             ty: op,
             a: self.clone(),
             b: other.clone(),
-        });
+        };
+        let sort = op.sort();
+        let term = TermType::BiOp(op);
         Self::new(sort, term)
     }
 
@@ -118,30 +120,38 @@ impl Term {
 
     #[inline]
     pub fn triop(&self, x: &Self, y: &Self, op: TriOpType) -> Self {
-        let sort = self.sort();
-        let term = TermType::TriOp(TriOp {
+        let op = TriOp {
             ty: op,
             a: self.clone(),
             b: x.clone(),
             c: y.clone(),
-        });
+        };
+        let sort = op.sort();
+        let term = TermType::TriOp(op);
         Self::new(sort, term)
     }
 
     #[inline]
     pub fn extop(&self, op: ExtOpType, length: u32) -> Self {
-        let sort = Sort::BV(
-            length
-                + match self.sort() {
-                    Sort::Bool => 1,
-                    Sort::BV(w) => w,
-                },
-        );
-        let term = TermType::ExtOp(ExtOp {
+        let op = ExtOp {
             ty: op,
             a: self.clone(),
             length,
-        });
+        };
+        let sort = op.sort();
+        let term = TermType::ExtOp(op);
+        Self::new(sort, term)
+    }
+
+    #[inline]
+    pub fn slice(&self, upper: u32, lower: u32) -> Self {
+        let op = SliceOp {
+            a: self.clone(),
+            upper,
+            lower,
+        };
+        let sort = op.sort();
+        let term = TermType::SliceOp(op);
         Self::new(sort, term)
     }
 }
@@ -191,6 +201,7 @@ pub enum TermType {
     BiOp(BiOp),
     TriOp(TriOp),
     ExtOp(ExtOp),
+    SliceOp(SliceOp),
 }
 
 unsafe impl Sync for TermType {}
@@ -226,20 +237,6 @@ impl TermCube {
         Self::default()
     }
 
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.cube.len()
-    }
-
-    #[inline]
-    pub fn push(&mut self, term: Term) {
-        let Err(index) = self.cube.binary_search(&term) else {
-            todo!()
-        };
-        self.cube.insert(index, term);
-        assert!(self.cube.is_sorted());
-    }
-
     pub fn term(&self) -> Term {
         let mut term = Term::bool_const(true);
         for l in self.iter() {
@@ -247,13 +244,72 @@ impl TermCube {
         }
         term
     }
+
+    #[inline]
+    pub fn ordered_subsume(&self, cube: &TermCube) -> bool {
+        debug_assert!(self.is_sorted());
+        debug_assert!(cube.is_sorted());
+        if self.len() > cube.len() {
+            return false;
+        }
+        let mut j = 0;
+        for i in 0..self.len() {
+            while j < cube.len() && self[i] > cube[j] {
+                j += 1;
+            }
+            if j == cube.len() || self[i] != cube[j] {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 impl Deref for TermCube {
-    type Target = [Term];
+    type Target = Vec<Term>;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
         &self.cube
+    }
+}
+
+impl DerefMut for TermCube {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cube
+    }
+}
+
+impl PartialOrd for TermCube {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for TermCube {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        debug_assert!(self.is_sorted());
+        debug_assert!(other.is_sorted());
+        let min_index = self.len().min(other.len());
+        for i in 0..min_index {
+            match self[i].cmp(&other[i]) {
+                Ordering::Less => return Ordering::Less,
+                Ordering::Equal => {}
+                Ordering::Greater => return Ordering::Greater,
+            }
+        }
+        self.len().cmp(&other.len())
+    }
+}
+
+impl FromIterator<Term> for TermCube {
+    #[inline]
+    fn from_iter<T: IntoIterator<Item = Term>>(iter: T) -> Self {
+        Self {
+            cube: Vec::from_iter(iter),
+        }
     }
 }
