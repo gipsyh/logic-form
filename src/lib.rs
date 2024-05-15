@@ -156,6 +156,15 @@ impl Lit {
     pub fn is_constant(&self, polarity: bool) -> bool {
         *self == Self::constant_lit(polarity)
     }
+
+    #[inline]
+    pub fn not_if(&self, c: bool) -> Self {
+        if c {
+            !*self
+        } else {
+            *self
+        }
+    }
 }
 
 impl Not for Lit {
@@ -542,7 +551,7 @@ impl Not for Dnf {
     }
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone, Hash)]
 pub struct Lemma {
     cube: Cube,
     sign: u64,
