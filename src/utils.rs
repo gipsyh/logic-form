@@ -217,6 +217,12 @@ impl VarSet {
     pub fn iter(&self) -> slice::Iter<Var> {
         self.set.iter()
     }
+
+    #[inline]
+    pub fn remove(&mut self, i: u32) {
+        let v = self.set.swap_remove(i as usize);
+        self.has[v] = false;
+    }
 }
 
 impl Index<u32> for VarSet {

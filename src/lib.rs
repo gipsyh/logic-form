@@ -12,10 +12,11 @@ use std::{
     collections::HashSet,
     fmt::{Debug, Display},
     ops::{Add, Deref, DerefMut, Not},
+    slice, vec,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub struct Var(u32);
+pub struct Var(pub u32);
 
 impl Var {
     #[inline]
@@ -251,6 +252,17 @@ impl FromIterator<Lit> for Clause {
         Self {
             lits: Vec::from_iter(iter),
         }
+    }
+}
+
+impl IntoIterator for Clause {
+    type Item = Lit;
+
+    type IntoIter = vec::IntoIter<Lit>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.lits.into_iter()
     }
 }
 
