@@ -223,6 +223,11 @@ impl VarSet {
         let v = self.set.swap_remove(i as usize);
         self.has[v] = false;
     }
+
+    #[inline]
+    pub fn swap(&mut self, a: u32, b: u32) {
+        self.set.swap(a as usize, b as usize)
+    }
 }
 
 impl Index<u32> for VarSet {
