@@ -1,6 +1,6 @@
 #![feature(is_sorted)]
 
-mod dimacs;
+pub mod dimacs;
 pub mod fol;
 mod utils;
 
@@ -11,8 +11,8 @@ use std::{
     cmp::Ordering,
     collections::HashSet,
     fmt::{Debug, Display},
-    ops::{Add, Deref, DerefMut, Not},
-    slice, vec,
+    ops::{Deref, DerefMut, Not},
+    vec,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -441,125 +441,6 @@ impl IntoIterator for Cube {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.lits.into_iter()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Cnf {
-    clauses: Vec<Clause>,
-}
-
-impl Cnf {
-    pub fn new() -> Self {
-        Self {
-            clauses: Vec::new(),
-        }
-    }
-
-    pub fn add_clause(&mut self, clause: Clause) {
-        self.clauses.push(clause);
-    }
-}
-
-impl Default for Cnf {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Deref for Cnf {
-    type Target = Vec<Clause>;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.clauses
-    }
-}
-
-impl DerefMut for Cnf {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.clauses
-    }
-}
-
-impl<F: Into<Vec<Clause>>> From<F> for Cnf {
-    fn from(value: F) -> Self {
-        Self {
-            clauses: value.into(),
-        }
-    }
-}
-
-impl FromIterator<Clause> for Cnf {
-    fn from_iter<T: IntoIterator<Item = Clause>>(iter: T) -> Self {
-        Self {
-            clauses: Vec::from_iter(iter),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Dnf {
-    cubes: Vec<Cube>,
-}
-
-impl Dnf {
-    pub fn new() -> Self {
-        Self { cubes: Vec::new() }
-    }
-
-    pub fn add_cube(&mut self, cube: Cube) {
-        self.cubes.push(cube);
-    }
-}
-
-impl Default for Dnf {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Deref for Dnf {
-    type Target = Vec<Cube>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.cubes
-    }
-}
-
-impl DerefMut for Dnf {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.cubes
-    }
-}
-
-impl FromIterator<Cube> for Dnf {
-    fn from_iter<T: IntoIterator<Item = Cube>>(iter: T) -> Self {
-        Self {
-            cubes: Vec::from_iter(iter),
-        }
-    }
-}
-
-impl Add for Dnf {
-    type Output = Self;
-
-    fn add(mut self, mut rhs: Self) -> Self::Output {
-        self.cubes.append(&mut rhs.cubes);
-        self
-    }
-}
-
-impl Not for Dnf {
-    type Output = Cnf;
-
-    fn not(self) -> Self::Output {
-        let mut cnf = Cnf::new();
-        for cube in self.cubes {
-            cnf.add_clause(!cube);
-        }
-        cnf
     }
 }
 
