@@ -196,6 +196,26 @@ impl Clause {
     pub fn new() -> Self {
         Clause { lits: Vec::new() }
     }
+
+    #[inline]
+    pub fn ordered_intersection(&self, other: &Clause) -> Vec<Lit> {
+        debug_assert!(self.is_sorted_by_key(|l| l.var()));
+        debug_assert!(other.is_sorted_by_key(|l| l.var()));
+        let mut res = Vec::new();
+        let mut i = 0;
+        for l in self.iter() {
+            while i < other.len() && other[i] < *l {
+                i += 1;
+            }
+            if i == other.len() {
+                break;
+            }
+            if *l == other[i] {
+                res.push(*l);
+            }
+        }
+        res
+    }
 }
 
 impl Default for Clause {
