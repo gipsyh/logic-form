@@ -30,7 +30,7 @@ pub fn from_dimacs_str(str: &str) -> Vec<Clause> {
     cnf
 }
 
-pub fn to_dimacs(cnf: &[Clause]) -> Vec<String> {
+pub fn to_dimacs(cnf: &[Clause]) -> String {
     let mut max_var = 0;
     for cls in cnf.iter() {
         max_var = max_var.max(
@@ -57,14 +57,11 @@ pub fn to_dimacs(cnf: &[Clause]) -> Vec<String> {
         s.push('0');
         dimacs.push(s);
     }
-    dimacs
+    dimacs.join("\n")
 }
 
 pub fn to_dimacs_file<P: AsRef<Path>>(cnf: &[Clause], file: P) {
     let dimacs = to_dimacs(cnf);
     let mut file = File::create(file).unwrap();
-
-    for d in dimacs {
-        writeln!(file, "{}", d).unwrap();
-    }
+    file.write_all(dimacs.as_bytes()).unwrap();
 }
