@@ -129,21 +129,18 @@ impl From<Lit> for u32 {
 impl From<Lit> for i32 {
     #[inline]
     fn from(val: Lit) -> Self {
-        val.0 as i32
-    }
-}
-
-impl From<Lit> for usize {
-    #[inline]
-    fn from(val: Lit) -> Self {
-        val.0 as usize
+        let mut v: i32 = val.var().into();
+        if !val.polarity() {
+            v = -v;
+        }
+        v
     }
 }
 
 impl From<i32> for Lit {
     #[inline]
     fn from(value: i32) -> Self {
-        Self(value as u32)
+        Self::new(Var(value.abs() as _), value > 0)
     }
 }
 
