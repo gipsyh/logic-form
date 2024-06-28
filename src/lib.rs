@@ -10,7 +10,7 @@ use std::{
     cmp::Ordering,
     collections::HashSet,
     fmt::{Debug, Display},
-    ops::{Deref, DerefMut, Not},
+    ops::{Add, AddAssign, Deref, DerefMut, Not},
     vec,
 };
 
@@ -26,6 +26,22 @@ impl Var {
     #[inline]
     pub fn lit(&self) -> Lit {
         Lit(self.0 << 1)
+    }
+}
+
+impl Add<u32> for Var {
+    type Output = Var;
+
+    #[inline]
+    fn add(self, rhs: u32) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl AddAssign<u32> for Var {
+    #[inline]
+    fn add_assign(&mut self, rhs: u32) {
+        self.0 += rhs;
     }
 }
 
