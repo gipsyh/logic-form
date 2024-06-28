@@ -6,7 +6,6 @@ mod utils;
 
 pub use utils::*;
 
-use serde::{Deserialize, Serialize};
 use std::{
     cmp::Ordering,
     collections::HashSet,
@@ -94,7 +93,7 @@ impl Display for Var {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Lit(u32);
 
 impl From<Var> for Lit {
@@ -266,7 +265,7 @@ impl IntoIterator for Clause {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Cube {
     lits: Vec<Lit>,
 }
@@ -444,7 +443,7 @@ impl IntoIterator for Cube {
     }
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone, Hash)]
+#[derive(Debug, Default, Clone, Hash)]
 pub struct Lemma {
     cube: Cube,
     sign: u64,
