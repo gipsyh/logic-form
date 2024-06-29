@@ -10,8 +10,16 @@ pub struct VarMap<T> {
 }
 
 impl<T: Default> VarMap<T> {
+    #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    #[inline]
+    pub fn new_with(var: Var) -> Self {
+        let mut res = Self::new();
+        res.reserve(var);
+        res
     }
 
     #[inline]
@@ -106,8 +114,16 @@ pub struct LitMap<T> {
 }
 
 impl<T: Default> LitMap<T> {
+    #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    #[inline]
+    pub fn new_with(var: Var) -> Self {
+        let mut res = Self::new();
+        res.reserve(var);
+        res
     }
 
     #[inline]
