@@ -4,12 +4,14 @@ pub mod dimacs;
 pub mod fol;
 mod utils;
 
+use ahash::AHasher;
 pub use utils::*;
 
 use std::{
     cmp::Ordering,
     collections::HashSet,
     fmt::{Debug, Display},
+    hash::{Hash, Hasher},
     ops::{Add, AddAssign, Deref, DerefMut, Not},
     vec,
 };
@@ -476,10 +478,11 @@ impl IntoIterator for Cube {
     }
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone)]
 pub struct Lemma {
     cube: Cube,
     sign: u64,
+    hash: u64,
 }
 
 impl Deref for Lemma {
@@ -523,7 +526,13 @@ impl Lemma {
         for l in cube.iter() {
             sign |= 1 << (Into::<u32>::into(*l) % 63);
         }
-        Self { cube, sign }
+        let mut hasher = AHasher::default();
+        cube.hash(&mut hasher);
+        Self {
+            cube,
+            sign,
+            hash: hasher.finish(),
+        }
     }
 
     #[inline]
@@ -556,5 +565,12 @@ impl Lemma {
             }
         }
         true
+    }
+}
+
+impl Hash for Lemma {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
     }
 }

@@ -17,3 +17,4 @@ no_bound_check = []
 lazy_static = "1.4.0"
 strum = { version = "0.26.2", features = ["derive"] }
 giputils = { path = "../giputils" }
+ahash = "0.8.11"
