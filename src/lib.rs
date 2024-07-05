@@ -574,3 +574,14 @@ impl Hash for Lemma {
         self.hash.hash(state);
     }
 }
+
+pub fn cnf_lits_and(master: Lit, lits: &[Lit]) -> Vec<Clause> {
+    let mut cnf = Vec::new();
+    let mut cls = Clause::from([master]);
+    for l in lits.iter() {
+        cnf.push(Clause::from([!master, *l]));
+        cls.push(!*l);
+    }
+    cnf.push(cls);
+    cnf
+}

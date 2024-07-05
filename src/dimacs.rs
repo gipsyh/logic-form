@@ -21,11 +21,9 @@ pub fn from_dimacs_str(str: &str) -> Vec<Clause> {
             .map(|s| s.parse::<i32>().unwrap())
             .collect();
         assert!(clause.pop().unwrap() == 0);
-        cnf.push(Clause::from_iter(
-            clause
-                .into_iter()
-                .map(|lit| Lit::new(Var::new(lit.unsigned_abs() as _), lit > 0)),
-        ));
+        cnf.push(Clause::from_iter(clause.into_iter().map(|lit| {
+            Lit::new(Var::new((lit.unsigned_abs() - 1) as _), lit > 0)
+        })));
     }
     cnf
 }
