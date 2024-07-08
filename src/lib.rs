@@ -142,7 +142,7 @@ impl From<Lit> for i32 {
 impl From<i32> for Lit {
     #[inline]
     fn from(value: i32) -> Self {
-        Self::new(Var(value.abs() as _), value > 0)
+        Self::new(Var(value.unsigned_abs()), value > 0)
     }
 }
 
@@ -517,6 +517,20 @@ impl PartialEq for Lemma {
 }
 
 impl Eq for Lemma {}
+
+impl PartialOrd for Lemma {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Lemma {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.cube.cmp(&other.cube)
+    }
+}
 
 impl Lemma {
     #[inline]
