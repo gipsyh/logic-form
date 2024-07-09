@@ -10,7 +10,7 @@ pub use utils::*;
 use std::{
     cmp::Ordering,
     collections::HashSet,
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display},
     hash::{Hash, Hasher},
     ops::{Add, AddAssign, Deref, DerefMut, Not},
     vec,
@@ -106,7 +106,8 @@ impl Deref for Var {
 }
 
 impl Display for Var {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -193,12 +194,20 @@ impl Not for Lit {
 }
 
 impl Debug for Lit {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.polarity() {
             write!(f, "{}", self.var())
         } else {
             write!(f, "-{}", self.var())
         }
+    }
+}
+
+impl Display for Lit {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self, f)
     }
 }
 
