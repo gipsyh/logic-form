@@ -347,6 +347,33 @@ impl Cube {
     }
 
     #[inline]
+    pub fn ordered_subsume_execpt_one(&self, cube: &Cube) -> (bool, Option<Lit>) {
+        debug_assert!(self.is_sorted_by_key(|l| l.var()));
+        debug_assert!(cube.is_sorted_by_key(|l| l.var()));
+        let mut diff = None;
+        if self.len() > cube.len() {
+            return (false, None);
+        }
+        let mut j = 0;
+        for i in 0..self.len() {
+            while j < cube.len() && self[i].var() > cube[j].var() {
+                j += 1;
+            }
+            if j == cube.len() {
+                return (false, None);
+            }
+            if self[i] != cube[j] {
+                if diff == None && self[i].var() == cube[j].var() {
+                    diff = Some(self[i]);
+                } else {
+                    return (false, None);
+                }
+            }
+        }
+        (diff.is_none(), diff)
+    }
+
+    #[inline]
     pub fn intersection(&self, cube: &Cube) -> Cube {
         let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
@@ -575,6 +602,18 @@ impl Lemma {
     }
 
     #[inline]
+    pub fn subsume_execpt_one(&self, other: &Lemma) -> (bool, Option<Lit>) {
+        if self.cube.len() > other.cube.len() {
+            return (false, None);
+        }
+        // if self.sign & other.sign != self.sign {
+        //     return false;
+        // }
+        // TODO
+        self.cube.ordered_subsume_execpt_one(&other.cube)
+    }
+
+    #[inline]
     pub fn subsume_set(&self, other: &Lemma, other_lits: &LitSet) -> bool {
         if self.cube.len() > other.cube.len() {
             return false;
@@ -618,4 +657,11 @@ pub fn cnf_lits_or(master: Lit, lits: &[Lit]) -> Vec<Clause> {
     }
     cnf.push(cls);
     cnf
+}
+
+impl Display for Lemma {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.cube.fmt(f)
+    }
 }
