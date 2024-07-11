@@ -574,7 +574,7 @@ impl Lemma {
         cube.sort();
         let mut sign = 0;
         for l in cube.iter() {
-            sign |= 1 << (Into::<u32>::into(*l) % 63);
+            sign |= 1 << (Into::<u32>::into(*l) % 64);
         }
         let mut hasher = AHasher::default();
         cube.hash(&mut hasher);
@@ -588,6 +588,11 @@ impl Lemma {
     #[inline]
     pub fn cube(&self) -> &Cube {
         &self.cube
+    }
+
+    #[inline]
+    fn var_sign(&self) -> u64 {
+        ((self.sign >> 1) | self.sign) & 6148914691236517205
     }
 
     #[inline]
@@ -606,10 +611,10 @@ impl Lemma {
         if self.cube.len() > other.cube.len() {
             return (false, None);
         }
-        // if self.sign & other.sign != self.sign {
-        //     return false;
-        // }
-        // TODO
+        let ss = self.var_sign();
+        if ss & other.var_sign() != ss {
+            return (false, None);
+        }
         self.cube.ordered_subsume_execpt_one(&other.cube)
     }
 
