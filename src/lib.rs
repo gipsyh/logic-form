@@ -517,7 +517,7 @@ impl IntoIterator for Cube {
 #[derive(Debug, Default, Clone)]
 pub struct Lemma {
     cube: Cube,
-    sign: u64,
+    sign: u128,
     hash: u64,
 }
 
@@ -574,7 +574,7 @@ impl Lemma {
         cube.sort();
         let mut sign = 0;
         for l in cube.iter() {
-            sign |= 1 << (Into::<u32>::into(*l) % 64);
+            sign |= 1 << (Into::<u32>::into(*l) % u128::BITS);
         }
         let mut hasher = AHasher::default();
         cube.hash(&mut hasher);
@@ -591,8 +591,8 @@ impl Lemma {
     }
 
     #[inline]
-    fn var_sign(&self) -> u64 {
-        ((self.sign >> 1) | self.sign) & 6148914691236517205
+    fn var_sign(&self) -> u128 {
+        ((self.sign >> 1) | self.sign) & 113427455640312821154458202477256070485_u128
     }
 
     #[inline]
