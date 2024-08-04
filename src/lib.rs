@@ -1,5 +1,3 @@
-#![feature(is_sorted)]
-
 pub mod dimacs;
 pub mod fol;
 mod utils;
@@ -264,6 +262,13 @@ impl DerefMut for Clause {
     }
 }
 
+impl AsRef<[Lit]> for Clause {
+    #[inline]
+    fn as_ref(&self) -> &[Lit] {
+        self.as_slice()
+    }
+}
+
 impl Not for Clause {
     type Output = Cube;
 
@@ -511,6 +516,13 @@ impl IntoIterator for Cube {
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.lits.into_iter()
+    }
+}
+
+impl AsRef<[Lit]> for Cube {
+    #[inline]
+    fn as_ref(&self) -> &[Lit] {
+        self.as_slice()
     }
 }
 
