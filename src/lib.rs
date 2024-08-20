@@ -1,3 +1,5 @@
+#![feature(step_trait)]
+
 pub mod dimacs;
 pub mod fol;
 mod utils;
@@ -10,6 +12,7 @@ use std::{
     collections::HashSet,
     fmt::{self, Debug, Display},
     hash::{Hash, Hasher},
+    iter::Step,
     ops::{Add, AddAssign, Deref, DerefMut, Not},
     vec,
 };
@@ -107,6 +110,23 @@ impl Display for Var {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Step for Var {
+    #[inline]
+    fn steps_between(start: &Self, end: &Self) -> Option<usize> {
+        u32::steps_between(&start.0, &end.0)
+    }
+
+    #[inline]
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        u32::forward_checked(start.0, count).map(|v| Self(v))
+    }
+
+    #[inline]
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        u32::backward_checked(start.0, count).map(|v| Self(v))
     }
 }
 
