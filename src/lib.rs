@@ -546,6 +546,12 @@ impl AsRef<[Lit]> for Cube {
     }
 }
 
+impl Display for Cube {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.lits.fmt(f)
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Lemma {
     cube: Cube,
@@ -699,6 +705,6 @@ pub fn cnf_lits_or(master: Lit, lits: &[Lit]) -> Vec<Clause> {
 impl Display for Lemma {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.cube.fmt(f)
+        Display::fmt(&self.cube, f)
     }
 }
