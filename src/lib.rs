@@ -258,6 +258,20 @@ impl Clause {
         }
         res
     }
+
+    #[inline]
+    pub fn resolvent(&self, other: &Clause, v: Var) -> Clause {
+        let mut new: Clause = other.iter().filter(|l| l.var() != v).copied().collect();
+        let other_set: HashSet<Lit> = HashSet::from_iter(new.iter().copied());
+        for x in self.iter().filter(|l| l.var() != v) {
+            if other_set.contains(&!*x) {
+                return Clause::default();
+            } else if !other_set.contains(x) {
+                new.push(*x);
+            }
+        }
+        new
+    }
 }
 
 impl Default for Clause {
