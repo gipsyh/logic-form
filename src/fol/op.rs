@@ -143,7 +143,7 @@ impl BiOp {
                 BiOpType::Concat => Sort::bv_new(a.bv_width() + b.bv_width()),
                 BiOpType::Read => todo!(),
             },
-            Sort::BV(aw) => match self.ty {
+            Sort::BV(_aw) => match self.ty {
                 BiOpType::Iff
                 | BiOpType::Implies
                 | BiOpType::Eq

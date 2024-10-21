@@ -38,14 +38,14 @@ impl TermMap {
     }
 
     #[inline]
-    pub fn remove(&self, term: &TermType) {
+    pub fn remove(&self, _term: &TermType) {
         todo!();
-        #[allow(invalid_reference_casting)]
-        let s = unsafe { &mut *(&self.map as *const _ as *mut HashMap<TermType, usize>) };
-        let v = s.remove(term).unwrap();
-        #[allow(invalid_reference_casting)]
-        let s = unsafe { &mut *(&self.sort as *const _ as *mut HashMap<usize, Sort>) };
-        assert!(s.remove(&v).is_some());
+        // #[allow(invalid_reference_casting)]
+        // let s = unsafe { &mut *(&self.map as *const _ as *mut HashMap<TermType, usize>) };
+        // let v = s.remove(term).unwrap();
+        // #[allow(invalid_reference_casting)]
+        // let s = unsafe { &mut *(&self.sort as *const _ as *mut HashMap<usize, Sort>) };
+        // assert!(s.remove(&v).is_some());
     }
 }
 
