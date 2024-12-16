@@ -1,12 +1,13 @@
 [package]
 name = "logic-form"
-version = "0.2.2"
+version = "0.2.3"
 license = "MIT"
 description = "Rust library for representing Cube, Clause, CNF and DNF"
 edition = "2021"
 repository = "https://github.com/gipsyh/logic-form"
 authors = ["Yuheng Su <gipsyh.icu@gmail.com>"]
-keywords = ["logic", "clause", "cube", "cnf", "dnf"]
+keywords = ["logic", "cube", "cnf"]
+rust-version = "1.85"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
