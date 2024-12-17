@@ -2,6 +2,7 @@
 
 pub mod dimacs;
 pub mod fol;
+pub mod ternary;
 mod utils;
 
 use ahash::AHasher;
@@ -121,12 +122,12 @@ impl Step for Var {
 
     #[inline]
     fn forward_checked(start: Self, count: usize) -> Option<Self> {
-        u32::forward_checked(start.0, count).map(|v| Self(v))
+        u32::forward_checked(start.0, count).map(Self)
     }
 
     #[inline]
     fn backward_checked(start: Self, count: usize) -> Option<Self> {
-        u32::backward_checked(start.0, count).map(|v| Self(v))
+        u32::backward_checked(start.0, count).map(Self)
     }
 }
 
@@ -402,7 +403,7 @@ impl Cube {
                 return (false, None);
             }
             if self[i] != cube[j] {
-                if diff == None && self[i].var() == cube[j].var() {
+                if diff.is_none() && self[i].var() == cube[j].var() {
                     diff = Some(self[i]);
                 } else {
                     return (false, None);

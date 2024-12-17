@@ -199,6 +199,7 @@ impl VarSet {
     }
 
     #[inline]
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> u32 {
         self.set.len() as _
     }
