@@ -4,7 +4,16 @@ pub enum Sort {
     Array(u32, u32),
 }
 
-impl Sort {}
+impl Sort {
+    #[inline]
+    pub fn bv_len(&self) -> u32 {
+        if let Sort::Bv(w) = self {
+            *w
+        } else {
+            panic!()
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BvConst {

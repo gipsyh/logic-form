@@ -1,8 +1,9 @@
 mod map;
-mod op;
+pub mod op;
 mod sort;
 mod term;
 
+pub use sort::*;
 pub use term::*;
 
 // pub use op::*;

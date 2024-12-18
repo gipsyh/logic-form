@@ -1,6 +1,8 @@
 use super::term::Term;
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::{
-    any::TypeId,
+    any::{type_name, TypeId},
     borrow::Borrow,
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -15,7 +17,14 @@ pub trait Op: Debug + 'static {
     }
 
     #[inline]
-    fn op(&self, terms: &[Term]) -> Term {
+    fn name(&self) -> &str {
+        type_name::<Self>().split("::").last().unwrap()
+    }
+
+    fn num_operand(&self) -> usize;
+
+    #[inline]
+    fn op(&self, _terms: &[Term]) -> Term {
         todo!()
     }
 }
@@ -63,22 +72,64 @@ impl PartialEq for DynOp {
 
 impl Eq for DynOp {}
 
-#[derive(Hash, Debug, PartialEq, Clone, Copy)]
-pub struct Not;
-impl Op for Not {}
+impl<O: Op> PartialEq<O> for DynOp {
+    #[inline]
+    fn eq(&self, other: &O) -> bool {
+        self.op.type_id() == other.type_id()
+    }
+}
 
-#[derive(Hash, Debug, PartialEq, Clone, Copy)]
-pub struct Inc;
-impl Op for Inc {}
+unsafe impl Send for DynOp {}
 
-#[test]
-fn test() {
-    let x = DynOp::new(Not);
-    let y = DynOp::new(Inc);
-    let z = DynOp::new(Inc);
-    dbg!(&x == &y);
-    dbg!(&x == &z);
-    dbg!(&y == &z);
+unsafe impl Sync for DynOp {}
+
+macro_rules! define_op {
+    ($name:ident, $num_operand:expr) => {
+        #[derive(Hash, Debug, PartialEq, Clone, Copy)]
+        pub struct $name;
+        impl Op for $name {
+            #[inline]
+            fn num_operand(&self) -> usize {
+                $num_operand
+            }
+        }
+    };
+}
+
+define_op!(Neq, 1);
+define_op!(Not, 1);
+define_op!(Inc, 1);
+define_op!(Or, 2);
+define_op!(And, 2);
+define_op!(Uext, 2);
+define_op!(Add, 2);
+define_op!(Ite, 3);
+
+macro_rules! insert_op {
+    ($map:expr, $($type:tt),*) => {
+        $(
+            let op = DynOp::new($type);
+            $map.insert(
+                op.name().to_lowercase(),
+                op,
+            );
+        )*
+    };
+}
+
+lazy_static! {
+    static ref OP_MAP: HashMap<String, DynOp> = {
+        let mut m = HashMap::new();
+        insert_op!(m, Not, Inc, Or, Neq, And, Uext, Add, Ite);
+        m
+    };
+}
+
+impl From<&str> for DynOp {
+    #[inline]
+    fn from(value: &str) -> Self {
+        OP_MAP.get(&value.to_lowercase()).unwrap().clone()
+    }
 }
 
 // #[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
@@ -91,33 +142,6 @@ fn test() {
 //     Redand,
 //     Redor,
 //     Redxor,
-// }
-
-// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-// pub struct UniOp {
-//     pub ty: UniOpType,
-//     pub a: Term,
-// }
-
-// impl UniOp {
-//     pub fn sort(&self) -> Sort {
-//         let a = self.a.sort();
-//         match a {
-//             Sort::Bool => match self.ty {
-//                 UniOpType::Not => a,
-//                 UniOpType::Inc => todo!(),
-//                 UniOpType::Dec => todo!(),
-//                 UniOpType::Neg => todo!(),
-//                 UniOpType::Redand => todo!(),
-//                 UniOpType::Redor => todo!(),
-//                 UniOpType::Redxor => todo!(),
-//             },
-//             Sort::BV(_) => match self.ty {
-//                 UniOpType::Not | UniOpType::Inc | UniOpType::Dec | UniOpType::Neg => a,
-//                 UniOpType::Redand | UniOpType::Redor | UniOpType::Redxor => Sort::Bool,
-//             },
-//         }
-//     }
 // }
 
 // #[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
@@ -166,151 +190,11 @@ fn test() {
 //     Read,
 // }
 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-// pub struct BiOp {
-//     pub ty: BiOpType,
-//     pub a: Term,
-//     pub b: Term,
-// }
-
-// impl BiOp {
-//     pub fn sort(&self) -> Sort {
-//         let a = self.a.sort();
-//         let b = self.b.sort();
-//         match a {
-//             Sort::Bool => match self.ty {
-//                 BiOpType::Iff
-//                 | BiOpType::Implies
-//                 | BiOpType::Eq
-//                 | BiOpType::Neq
-//                 | BiOpType::And
-//                 | BiOpType::Nand
-//                 | BiOpType::Nor
-//                 | BiOpType::Or
-//                 | BiOpType::Xnor
-//                 | BiOpType::Xor => {
-//                     assert!(a == b);
-//                     a
-//                 }
-//                 BiOpType::Sgt => todo!(),
-//                 BiOpType::Ugt => todo!(),
-//                 BiOpType::Sgte => todo!(),
-//                 BiOpType::Ugte => todo!(),
-//                 BiOpType::Slt => todo!(),
-//                 BiOpType::Ult => todo!(),
-//                 BiOpType::Slte => todo!(),
-//                 BiOpType::Ulte => todo!(),
-//                 BiOpType::Rol => todo!(),
-//                 BiOpType::Ror => todo!(),
-//                 BiOpType::Sll => todo!(),
-//                 BiOpType::Sra => todo!(),
-//                 BiOpType::Srl => todo!(),
-//                 BiOpType::Add => todo!(),
-//                 BiOpType::Mul => todo!(),
-//                 BiOpType::Sdiv => todo!(),
-//                 BiOpType::Udiv => todo!(),
-//                 BiOpType::Smod => todo!(),
-//                 BiOpType::Srem => todo!(),
-//                 BiOpType::Urem => todo!(),
-//                 BiOpType::Sub => todo!(),
-//                 BiOpType::Saddo => todo!(),
-//                 BiOpType::Uaddo => todo!(),
-//                 BiOpType::Sdivo => todo!(),
-//                 BiOpType::Udivo => todo!(),
-//                 BiOpType::Smulo => todo!(),
-//                 BiOpType::Umulo => todo!(),
-//                 BiOpType::Ssubo => todo!(),
-//                 BiOpType::Usubo => todo!(),
-//                 BiOpType::Concat => Sort::bv_new(a.bv_width() + b.bv_width()),
-//                 BiOpType::Read => todo!(),
-//             },
-//             Sort::BV(_aw) => match self.ty {
-//                 BiOpType::Iff
-//                 | BiOpType::Implies
-//                 | BiOpType::Eq
-//                 | BiOpType::Neq
-//                 | BiOpType::Sgt
-//                 | BiOpType::Ugt
-//                 | BiOpType::Sgte
-//                 | BiOpType::Ugte
-//                 | BiOpType::Slt
-//                 | BiOpType::Ult
-//                 | BiOpType::Slte
-//                 | BiOpType::Ulte => {
-//                     assert!(a == b);
-//                     Sort::Bool
-//                 }
-//                 BiOpType::And
-//                 | BiOpType::Nand
-//                 | BiOpType::Nor
-//                 | BiOpType::Or
-//                 | BiOpType::Xnor
-//                 | BiOpType::Xor
-//                 | BiOpType::Add
-//                 | BiOpType::Sub => {
-//                     assert!(a == b);
-//                     a
-//                 }
-//                 BiOpType::Rol => todo!(),
-//                 BiOpType::Ror => todo!(),
-//                 BiOpType::Sll => a,
-//                 BiOpType::Sra => todo!(),
-//                 BiOpType::Srl => todo!(),
-//                 BiOpType::Mul => todo!(),
-//                 BiOpType::Sdiv => todo!(),
-//                 BiOpType::Udiv => todo!(),
-//                 BiOpType::Smod => todo!(),
-//                 BiOpType::Srem => todo!(),
-//                 BiOpType::Urem => todo!(),
-//                 BiOpType::Saddo => todo!(),
-//                 BiOpType::Uaddo => todo!(),
-//                 BiOpType::Sdivo => todo!(),
-//                 BiOpType::Udivo => todo!(),
-//                 BiOpType::Smulo => todo!(),
-//                 BiOpType::Umulo => todo!(),
-//                 BiOpType::Ssubo => todo!(),
-//                 BiOpType::Usubo => todo!(),
-//                 BiOpType::Concat => Sort::bv_new(a.bv_width() + b.bv_width()),
-//                 BiOpType::Read => todo!(),
-//             },
-//         }
-//     }
-// }
-
 // #[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
 // #[strum(serialize_all = "lowercase")]
 // pub enum TriOpType {
 //     Ite,
 //     Write,
-// }
-
-// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-// pub struct TriOp {
-//     pub ty: TriOpType,
-//     pub a: Term,
-//     pub b: Term,
-//     pub c: Term,
-// }
-
-// impl TriOp {
-//     pub fn sort(&self) -> Sort {
-//         let a = self.a.sort();
-//         let b = self.b.sort();
-//         let c = self.c.sort();
-//         match a {
-//             Sort::Bool => match self.ty {
-//                 TriOpType::Ite => {
-//                     assert!(b == c);
-//                     b
-//                 }
-//                 TriOpType::Write => todo!(),
-//             },
-//             Sort::BV(w) => {
-//                 dbg!(w);
-//                 todo!()
-//             }
-//         }
-//     }
 // }
 
 // #[derive(Debug, Copy, Clone, strum::EnumString, strum::Display, PartialEq, Eq, Hash)]
@@ -321,29 +205,8 @@ fn test() {
 // }
 
 // #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-// pub struct ExtOp {
-//     pub ty: ExtOpType,
-//     pub a: Term,
-//     pub length: u32,
-// }
-
-// impl ExtOp {
-//     #[inline]
-//     pub fn sort(&self) -> Sort {
-//         let a = self.a.sort();
-//         Sort::bv_new(self.length + a.bv_width())
-//     }
-// }
-
-// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 // pub struct SliceOp {
 //     pub a: Term,
 //     pub upper: u32,
 //     pub lower: u32,
-// }
-
-// impl SliceOp {
-//     pub fn sort(&self) -> Sort {
-//         Sort::bv_new(self.upper - self.lower + 1)
-//     }
 // }

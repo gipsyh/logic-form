@@ -12,20 +12,30 @@ pub struct Term {
 
 impl Term {
     #[inline]
-    pub fn new_op_term(op: impl Into<DynOp>, terms: &[Term]) -> Self {
-        Term {
-            inner: Grc::new(TermInner::Op(OpTerm::new(op, terms))),
-        }
-    }
-
     pub fn bool_const(c: bool) -> Self {
         Term {
             inner: Grc::new(TermInner::Const(ConstTerm::BV(BvConst::new(&[c])))),
         }
     }
 
-    pub fn new_bv_const() {
-        todo!()
+    pub fn bv_const(c: &[bool]) -> Self {
+        Term {
+            inner: Grc::new(TermInner::Const(ConstTerm::BV(BvConst::new(c)))),
+        }
+    }
+
+    #[inline]
+    pub fn new_op_term(op: impl Into<DynOp>, terms: &[Term]) -> Self {
+        Term {
+            inner: Grc::new(TermInner::Op(OpTerm::new(op, terms))),
+        }
+    }
+
+    #[inline]
+    pub fn new_var(sort: Sort, id: u32) -> Self {
+        Term {
+            inner: Grc::new(TermInner::Var(VarTerm::new(id, sort))),
+        }
     }
 }
 
@@ -53,8 +63,14 @@ pub enum ConstTerm {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VarTerm {
-    vid: usize,
+    vid: u32,
     sort: Sort,
+}
+
+impl VarTerm {
+    pub fn new(vid: u32, sort: Sort) -> Self {
+        Self { vid, sort }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
