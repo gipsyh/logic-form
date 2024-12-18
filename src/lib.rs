@@ -1,7 +1,6 @@
 #![feature(step_trait)]
 
 pub mod dimacs;
-pub mod fol;
 pub mod ternary;
 mod utils;
 

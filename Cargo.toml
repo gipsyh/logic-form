@@ -1,6 +1,6 @@
 [package]
 name = "logic-form"
-version = "0.2.4"
+version = "0.2.5"
 license = "MIT"
 description = "Rust library for representing Cube, Clause, CNF and DNF"
 edition = "2021"
@@ -15,7 +15,5 @@ rust-version = "1.85"
 no_bound_check = []
 
 [dependencies]
-lazy_static = "1.4.0"
-strum = { version = "0.26.2", features = ["derive"] }
 giputils = { path = "../giputils", version = "0.2" }
 ahash = "0.8.11"
