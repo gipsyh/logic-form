@@ -199,6 +199,11 @@ impl Lit {
             *self
         }
     }
+
+    #[inline]
+    pub fn cube(&self) -> Cube {
+        Cube::from([*self])
+    }
 }
 
 impl Not for Lit {
