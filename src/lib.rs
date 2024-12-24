@@ -786,9 +786,9 @@ impl DagCnf {
     #[inline]
     pub fn add_or_rel(&mut self, n: Lit, x: Lit, y: Lit) {
         let rel = vec![
-            Clause::from([!x, !n]),
-            Clause::from([!y, !n]),
-            Clause::from([x, y, n]),
+            Clause::from([!x, n]),
+            Clause::from([!y, n]),
+            Clause::from([x, y, !n]),
         ];
         self.add_rel(n.var(), &rel);
     }
