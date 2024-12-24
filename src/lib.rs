@@ -182,13 +182,13 @@ impl Lit {
     }
 
     #[inline]
-    pub fn constant_lit(polarity: bool) -> Self {
+    pub fn constant(polarity: bool) -> Self {
         Self::new(Var::new(0), !polarity)
     }
 
     #[inline]
     pub fn is_constant(&self, polarity: bool) -> bool {
-        *self == Self::constant_lit(polarity)
+        *self == Self::constant(polarity)
     }
 
     #[inline]
