@@ -1,4 +1,5 @@
-use crate::{Lit, Var};
+use crate::{Clause, Lit, Var};
+use ahash::{HashMap, HashSet};
 use std::{
     ops::{Deref, DerefMut, Index, IndexMut},
     ptr, slice,
@@ -369,5 +370,41 @@ impl Iterator for VarRefIter {
         }
         self.p += 1;
         Some(varref.set[self.p - 1])
+    }
+}
+
+#[derive(Default)]
+pub struct DagCnfBuilder {
+    max_var: Var,
+    rel: HashMap<Var, Vec<Clause>>,
+}
+
+impl DagCnfBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn new_var(&mut self) -> Var {
+        self.max_var += 1;
+        self.max_var
+    }
+
+    #[inline]
+    pub fn set_rel(&mut self, root: Var, rel: &[Clause]) {
+        assert!(self.rel.insert(root, rel.to_vec()).is_none())
+    }
+
+    pub fn finish(self) -> (Vec<Clause>, VarMap<Vec<Var>>, Var) {
+        let mut cnf = Vec::new();
+        let mut dep = VarMap::new_with(self.max_var);
+        for (v, rel) in self.rel {
+            let mut has: HashSet<Var> = HashSet::from_iter(rel.iter().flatten().map(|l| l.var()));
+            assert!(has.remove(&v));
+            dep[v] = Vec::from_iter(has.into_iter());
+            dep[v].sort();
+            cnf.extend(rel);
+        }
+        (cnf, dep, self.max_var)
     }
 }

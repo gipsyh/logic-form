@@ -14,7 +14,7 @@ use std::{
     hash::{Hash, Hasher},
     iter::Step,
     ops::{Add, AddAssign, Deref, DerefMut, Not},
-    vec,
+    slice, vec,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -344,12 +344,21 @@ impl FromIterator<Lit> for Clause {
 
 impl IntoIterator for Clause {
     type Item = Lit;
-
     type IntoIter = vec::IntoIter<Lit>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.lits.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Clause {
+    type Item = &'a Lit;
+    type IntoIter = slice::Iter<'a, Lit>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.lits.iter()
     }
 }
 
@@ -549,12 +558,21 @@ impl FromIterator<Lit> for Cube {
 
 impl IntoIterator for Cube {
     type Item = Lit;
-
     type IntoIter = std::vec::IntoIter<Lit>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.lits.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Cube {
+    type Item = &'a Lit;
+    type IntoIter = slice::Iter<'a, Lit>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.lits.iter()
     }
 }
 
