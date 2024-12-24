@@ -746,10 +746,11 @@ impl Display for Lemma {
     }
 }
 
+#[derive(Debug)]
 pub struct DagCnf {
-    max_var: Var,
-    cnf: Vec<Clause>,
-    dep: VarMap<Vec<Var>>,
+    pub max_var: Var,
+    pub cnf: Vec<Clause>,
+    pub dep: VarMap<Vec<Var>>,
 }
 
 impl DagCnf {
@@ -773,12 +774,43 @@ impl DagCnf {
     }
 
     #[inline]
+    pub fn add_and_rel(&mut self, n: Lit, x: Lit, y: Lit) {
+        let rel = vec![
+            Clause::from([x, !n]),
+            Clause::from([y, !n]),
+            Clause::from([!x, !y, n]),
+        ];
+        self.add_rel(n.var(), &rel);
+    }
+
+    #[inline]
+    pub fn add_or_rel(&mut self, n: Lit, x: Lit, y: Lit) {
+        let rel = vec![
+            Clause::from([!x, !n]),
+            Clause::from([!y, !n]),
+            Clause::from([x, y, n]),
+        ];
+        self.add_rel(n.var(), &rel);
+    }
+
+    #[inline]
     pub fn add_xor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
         let rel = vec![
             Clause::from([!x, y, n]),
             Clause::from([x, !y, n]),
             Clause::from([x, y, !n]),
             Clause::from([!x, !y, !n]),
+        ];
+        self.add_rel(n.var(), &rel);
+    }
+
+    #[inline]
+    pub fn add_ite_rel(&mut self, n: Lit, c: Lit, t: Lit, e: Lit) {
+        let rel = vec![
+            Clause::from([t, !c, !n]),
+            Clause::from([!t, !c, n]),
+            Clause::from([e, c, !n]),
+            Clause::from([!e, c, n]),
         ];
         self.add_rel(n.var(), &rel);
     }
