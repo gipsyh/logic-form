@@ -745,3 +745,51 @@ impl Display for Lemma {
         Display::fmt(&self.cube, f)
     }
 }
+
+pub struct DagCnf {
+    max_var: Var,
+    cnf: Vec<Clause>,
+    dep: VarMap<Vec<Var>>,
+}
+
+impl DagCnf {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn new_var(&mut self) -> Var {
+        self.max_var += 1;
+        self.dep.reserve(self.max_var);
+        self.max_var
+    }
+
+    #[inline]
+    pub fn add_rel(&mut self, v: Var, rel: &[Clause]) {
+        self.dep[v] = Vec::from_iter(rel.iter().flatten().map(|l| l.var()).filter(|x| *x != v));
+        self.dep[v].sort();
+        self.dep[v].dedup();
+        self.cnf.extend_from_slice(rel);
+    }
+
+    #[inline]
+    pub fn add_xor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
+        let rel = vec![
+            Clause::from([!x, y, n]),
+            Clause::from([x, !y, n]),
+            Clause::from([x, y, !n]),
+            Clause::from([!x, !y, !n]),
+        ];
+        self.add_rel(n.var(), &rel);
+    }
+}
+
+impl Default for DagCnf {
+    fn default() -> Self {
+        Self {
+            max_var: Var(0),
+            cnf: Vec::new(),
+            dep: VarMap::new_with(Var(0)),
+        }
+    }
+}
