@@ -805,6 +805,17 @@ impl DagCnf {
     }
 
     #[inline]
+    pub fn add_xnor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
+        let rel = vec![
+            Clause::from([!x, y, !n]),
+            Clause::from([x, !y, !n]),
+            Clause::from([x, y, n]),
+            Clause::from([!x, !y, n]),
+        ];
+        self.add_rel(n.var(), &rel);
+    }
+
+    #[inline]
     pub fn add_ite_rel(&mut self, n: Lit, c: Lit, t: Lit, e: Lit) {
         let rel = vec![
             Clause::from([t, !c, !n]),
