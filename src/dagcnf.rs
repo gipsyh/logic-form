@@ -91,7 +91,7 @@ impl Default for DagCnf {
     fn default() -> Self {
         Self {
             max_var: Var(0),
-            cnf: Vec::new(),
+            cnf: vec![Clause::from([Lit::constant(true)])],
             dep: VarMap::new_with(Var(0)),
         }
     }
