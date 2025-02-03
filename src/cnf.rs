@@ -23,6 +23,11 @@ impl Cnf {
     }
 
     #[inline]
+    pub fn new_var_to(&mut self, n: Var) {
+        self.max_var = self.max_var.max(n);
+    }
+
+    #[inline]
     pub fn add_clause(&mut self, cls: &[Lit]) {
         self.cls.push(Clause::from(cls));
     }
@@ -38,7 +43,7 @@ impl Cnf {
     }
 
     #[inline]
-    pub fn add_equal_rel(&mut self, n: Lit, s: Lit) {
+    pub fn add_assign_rel(&mut self, n: Lit, s: Lit) {
         let rel = vec![Clause::from([n, !s]), Clause::from([!n, s])];
         self.add_clauses(rel.into_iter());
     }
@@ -126,7 +131,7 @@ impl DagCnf {
 
     #[inline]
     pub fn add_assign_rel(&mut self, n: Lit, s: Lit) {
-        self.cnf.add_equal_rel(n, s);
+        self.cnf.add_assign_rel(n, s);
         self.dep[n.var()].push(s.var());
     }
 
