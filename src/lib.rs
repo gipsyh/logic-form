@@ -1,12 +1,11 @@
 #![feature(step_trait)]
 
-mod dagcnf;
+pub mod cnf;
 pub mod dimacs;
 pub mod ternary;
 mod utils;
 
 use ahash::AHasher;
-pub use dagcnf::*;
 pub use utils::*;
 
 use std::{
