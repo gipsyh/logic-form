@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::{Clause, Lit, Var, VarMap};
 
 #[derive(Debug)]
@@ -102,6 +104,15 @@ impl Cnf {
     }
 }
 
+impl Deref for Cnf {
+    type Target = [Clause];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.cls
+    }
+}
+
 impl Default for Cnf {
     fn default() -> Self {
         Self {
@@ -127,6 +138,11 @@ impl DagCnf {
         let n = self.cnf.new_var();
         self.dep.reserve(n);
         n
+    }
+
+    #[inline]
+    pub fn max_var(&self) -> Var {
+        self.cnf.max_var()
     }
 
     #[inline]
@@ -172,5 +188,14 @@ impl Default for DagCnf {
             cnf: Default::default(),
             dep: VarMap::new_with(Var(0)),
         }
+    }
+}
+
+impl Deref for DagCnf {
+    type Target = [Clause];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.cnf.deref()
     }
 }
