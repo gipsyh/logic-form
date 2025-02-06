@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::Not};
+use std::{
+    fmt::Debug,
+    ops::{BitAnd, BitOr, Not},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Lbool(pub u8);
@@ -21,6 +24,14 @@ impl Lbool {
     #[inline]
     pub fn is_none(self) -> bool {
         self.0 & 2 != 0
+    }
+
+    pub fn not_if(self, x: bool) -> Self {
+        if x {
+            !self
+        } else {
+            self
+        }
     }
 }
 
@@ -65,5 +76,49 @@ impl Not for Lbool {
     #[inline]
     fn not(self) -> Self::Output {
         Lbool(self.0 ^ 1)
+    }
+}
+
+impl BitAnd for Lbool {
+    type Output = Lbool;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        if self.is_none() {
+            if rhs.is_false() {
+                Self::FALSE
+            } else {
+                Self::NONE
+            }
+        } else if rhs.is_none() {
+            if self.is_false() {
+                Self::FALSE
+            } else {
+                Self::NONE
+            }
+        } else {
+            Self(self.0 & rhs.0)
+        }
+    }
+}
+
+impl BitOr for Lbool {
+    type Output = Lbool;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        if self.is_none() {
+            if rhs.is_true() {
+                Self::TRUE
+            } else {
+                Self::NONE
+            }
+        } else if rhs.is_none() {
+            if self.is_true() {
+                Self::TRUE
+            } else {
+                Self::NONE
+            }
+        } else {
+            Self(self.0 | rhs.0)
+        }
     }
 }

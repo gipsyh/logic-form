@@ -1,12 +1,12 @@
 #![feature(step_trait)]
 
-pub mod cnf;
+mod cnf;
 pub mod dimacs;
 mod lbool;
-pub mod ternary;
 mod utils;
 
 use ahash::AHasher;
+pub use cnf::*;
 pub use lbool::*;
 pub use utils::*;
 
