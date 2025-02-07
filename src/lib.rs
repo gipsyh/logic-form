@@ -7,12 +7,12 @@ mod utils;
 
 use ahash::AHasher;
 pub use cnf::*;
+use giputils::hash::GHashSet;
 pub use lbool::*;
 pub use utils::*;
 
 use std::{
     cmp::Ordering,
-    collections::HashSet,
     fmt::{self, Debug, Display},
     hash::{Hash, Hasher},
     iter::Step,
@@ -250,8 +250,8 @@ impl LitVec {
 
     #[inline]
     pub fn subsume(&self, cube: &[Lit]) -> bool {
-        let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
-        let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
+        let x_lit_set = self.iter().collect::<GHashSet<&Lit>>();
+        let y_lit_set = cube.iter().collect::<GHashSet<&Lit>>();
         x_lit_set.is_subset(&y_lit_set)
     }
 
@@ -303,8 +303,8 @@ impl LitVec {
 
     #[inline]
     pub fn intersection(&self, cube: &LitVec) -> LitVec {
-        let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
-        let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
+        let x_lit_set = self.iter().collect::<GHashSet<&Lit>>();
+        let y_lit_set = cube.iter().collect::<GHashSet<&Lit>>();
         Self {
             lits: x_lit_set
                 .intersection(&y_lit_set)
