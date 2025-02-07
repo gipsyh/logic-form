@@ -24,6 +24,8 @@ use std::{
 pub struct Var(pub u32);
 
 impl Var {
+    pub const CONST: Var = Var(0);
+
     #[inline]
     pub fn new(x: usize) -> Self {
         Self(x as _)
@@ -32,6 +34,11 @@ impl Var {
     #[inline]
     pub fn lit(&self) -> Lit {
         Lit(self.0 << 1)
+    }
+
+    #[inline]
+    pub fn is_constant(&self) -> bool {
+        *self == Self::CONST
     }
 }
 
@@ -186,7 +193,7 @@ impl Lit {
 
     #[inline]
     pub fn constant(polarity: bool) -> Self {
-        Self::new(Var::new(0), !polarity)
+        Self::new(Var::CONST, !polarity)
     }
 
     #[inline]

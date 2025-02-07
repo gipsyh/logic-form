@@ -2,6 +2,7 @@ pub mod simp;
 
 use crate::{Lit, LitVec, Var, VarMap};
 use giputils::hash::{GHashMap, GHashSet};
+use simp::CnfSimplify;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone)]
@@ -33,12 +34,17 @@ impl Cnf {
 
     #[inline]
     pub fn add_clause(&mut self, cls: &[Lit]) {
+        if let Some(m) = cls.iter().map(|l| l.var()).max() {
+            self.max_var = self.max_var.max(m);
+        }
         self.cls.push(LitVec::from(cls));
     }
 
     #[inline]
     pub fn add_clauses(&mut self, cls: impl Iterator<Item = LitVec>) {
-        self.cls.extend(cls);
+        for cls in cls {
+            self.add_clause(&cls);
+        }
     }
 
     #[inline]
@@ -301,6 +307,15 @@ impl DagCnf {
     /// # Safety
     pub unsafe fn set_cls(&mut self, cls: Vec<LitVec>) {
         self.cnf.set_cls(cls);
+    }
+
+    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) {
+        dbg!(self.cnf.len());
+        let mut simp = CnfSimplify::new(self.cnf.clone());
+        for v in frozen {
+            simp.froze(v);
+        }
+        dbg!(simp.simplify().len());
     }
 }
 
