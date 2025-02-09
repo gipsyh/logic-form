@@ -1,11 +1,10 @@
+use crate::{Lit, LitVec, Var, VarMap};
 use std::ops::Deref;
-
-use crate::{Clause, Lit, Var, VarMap};
 
 #[derive(Debug)]
 pub struct Cnf {
     max_var: Var,
-    pub cls: Vec<Clause>,
+    pub cls: Vec<LitVec>,
 }
 
 impl Cnf {
@@ -31,31 +30,31 @@ impl Cnf {
 
     #[inline]
     pub fn add_clause(&mut self, cls: &[Lit]) {
-        self.cls.push(Clause::from(cls));
+        self.cls.push(LitVec::from(cls));
     }
 
     #[inline]
-    pub fn add_clauses(&mut self, cls: impl Iterator<Item = Clause>) {
+    pub fn add_clauses(&mut self, cls: impl Iterator<Item = LitVec>) {
         self.cls.extend(cls);
     }
 
     #[inline]
-    pub fn clauses(&self) -> &[Clause] {
+    pub fn clauses(&self) -> &[LitVec] {
         &self.cls
     }
 
     #[inline]
     pub fn add_assign_rel(&mut self, n: Lit, s: Lit) {
-        let rel = vec![Clause::from([n, !s]), Clause::from([!n, s])];
+        let rel = vec![LitVec::from([n, !s]), LitVec::from([!n, s])];
         self.add_clauses(rel.into_iter());
     }
 
     #[inline]
     pub fn add_and_rel(&mut self, n: Lit, x: Lit, y: Lit) {
         let rel = vec![
-            Clause::from([x, !n]),
-            Clause::from([y, !n]),
-            Clause::from([!x, !y, n]),
+            LitVec::from([x, !n]),
+            LitVec::from([y, !n]),
+            LitVec::from([!x, !y, n]),
         ];
         self.add_clauses(rel.into_iter());
     }
@@ -63,9 +62,9 @@ impl Cnf {
     #[inline]
     pub fn add_or_rel(&mut self, n: Lit, x: Lit, y: Lit) {
         let rel = vec![
-            Clause::from([!x, n]),
-            Clause::from([!y, n]),
-            Clause::from([x, y, !n]),
+            LitVec::from([!x, n]),
+            LitVec::from([!y, n]),
+            LitVec::from([x, y, !n]),
         ];
         self.add_clauses(rel.into_iter());
     }
@@ -73,10 +72,10 @@ impl Cnf {
     #[inline]
     pub fn add_xor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
         let rel = vec![
-            Clause::from([!x, y, n]),
-            Clause::from([x, !y, n]),
-            Clause::from([x, y, !n]),
-            Clause::from([!x, !y, !n]),
+            LitVec::from([!x, y, n]),
+            LitVec::from([x, !y, n]),
+            LitVec::from([x, y, !n]),
+            LitVec::from([!x, !y, !n]),
         ];
         self.add_clauses(rel.into_iter());
     }
@@ -84,10 +83,10 @@ impl Cnf {
     #[inline]
     pub fn add_xnor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
         let rel = vec![
-            Clause::from([!x, y, !n]),
-            Clause::from([x, !y, !n]),
-            Clause::from([x, y, n]),
-            Clause::from([!x, !y, n]),
+            LitVec::from([!x, y, !n]),
+            LitVec::from([x, !y, !n]),
+            LitVec::from([x, y, n]),
+            LitVec::from([!x, !y, n]),
         ];
         self.add_clauses(rel.into_iter());
     }
@@ -95,17 +94,17 @@ impl Cnf {
     #[inline]
     pub fn add_ite_rel(&mut self, n: Lit, c: Lit, t: Lit, e: Lit) {
         let rel = vec![
-            Clause::from([t, !c, !n]),
-            Clause::from([!t, !c, n]),
-            Clause::from([e, c, !n]),
-            Clause::from([!e, c, n]),
+            LitVec::from([t, !c, !n]),
+            LitVec::from([!t, !c, n]),
+            LitVec::from([e, c, !n]),
+            LitVec::from([!e, c, n]),
         ];
         self.add_clauses(rel.into_iter());
     }
 }
 
 impl Deref for Cnf {
-    type Target = [Clause];
+    type Target = [LitVec];
 
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -117,7 +116,7 @@ impl Default for Cnf {
     fn default() -> Self {
         Self {
             max_var: Var(0),
-            cls: vec![Clause::from([Lit::constant(true)])],
+            cls: vec![LitVec::from([Lit::constant(true)])],
         }
     }
 }
@@ -192,7 +191,7 @@ impl Default for DagCnf {
 }
 
 impl Deref for DagCnf {
-    type Target = [Clause];
+    type Target = [LitVec];
 
     #[inline]
     fn deref(&self) -> &Self::Target {

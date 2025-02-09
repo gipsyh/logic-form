@@ -17,7 +17,7 @@ use std::{
     hash::{Hash, Hasher},
     iter::Step,
     ops::{Add, AddAssign, Deref, DerefMut, Not},
-    slice, vec,
+    slice,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -204,8 +204,8 @@ impl Lit {
     }
 
     #[inline]
-    pub fn cube(&self) -> Cube {
-        Cube::from([*self])
+    pub fn cube(&self) -> LitVec {
+        LitVec::from([*self])
     }
 }
 
@@ -238,153 +238,25 @@ impl Display for Lit {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Clause {
+pub struct LitVec {
     lits: Vec<Lit>,
 }
 
-impl Clause {
-    pub fn new() -> Self {
-        Clause { lits: Vec::new() }
-    }
-
-    #[inline]
-    pub fn ordered_intersection(&self, other: &Clause) -> Vec<Lit> {
-        debug_assert!(self.is_sorted_by_key(|l| l.var()));
-        debug_assert!(other.is_sorted_by_key(|l| l.var()));
-        let mut res = Vec::new();
-        let mut i = 0;
-        for l in self.iter() {
-            while i < other.len() && other[i] < *l {
-                i += 1;
-            }
-            if i == other.len() {
-                break;
-            }
-            if *l == other[i] {
-                res.push(*l);
-            }
-        }
-        res
-    }
-
-    #[inline]
-    pub fn resolvent(&self, other: &Clause, v: Var) -> Clause {
-        let mut new: Clause = other.iter().filter(|l| l.var() != v).copied().collect();
-        let other_set: HashSet<Lit> = HashSet::from_iter(new.iter().copied());
-        for x in self.iter().filter(|l| l.var() != v) {
-            if other_set.contains(&!*x) {
-                return Clause::default();
-            } else if !other_set.contains(x) {
-                new.push(*x);
-            }
-        }
-        new
-    }
-}
-
-impl Default for Clause {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Deref for Clause {
-    type Target = Vec<Lit>;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.lits
-    }
-}
-
-impl DerefMut for Clause {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.lits
-    }
-}
-
-impl AsRef<[Lit]> for Clause {
-    #[inline]
-    fn as_ref(&self) -> &[Lit] {
-        self.as_slice()
-    }
-}
-
-impl Not for Clause {
-    type Output = Cube;
-
-    #[inline]
-    fn not(self) -> Self::Output {
-        let lits = self.lits.iter().map(|lit| !*lit).collect();
-        Cube { lits }
-    }
-}
-
-impl Not for &Clause {
-    type Output = Cube;
-
-    #[inline]
-    fn not(self) -> Self::Output {
-        let lits = self.lits.iter().map(|lit| !*lit).collect();
-        Cube { lits }
-    }
-}
-
-impl<F: Into<Vec<Lit>>> From<F> for Clause {
-    fn from(value: F) -> Self {
-        Self { lits: value.into() }
-    }
-}
-
-impl FromIterator<Lit> for Clause {
-    fn from_iter<T: IntoIterator<Item = Lit>>(iter: T) -> Self {
-        Self {
-            lits: Vec::from_iter(iter),
-        }
-    }
-}
-
-impl IntoIterator for Clause {
-    type Item = Lit;
-    type IntoIter = vec::IntoIter<Lit>;
-
-    #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        self.lits.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a Clause {
-    type Item = &'a Lit;
-    type IntoIter = slice::Iter<'a, Lit>;
-
-    #[inline]
-    fn into_iter(self) -> Self::IntoIter {
-        self.lits.iter()
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Cube {
-    lits: Vec<Lit>,
-}
-
-impl Cube {
+impl LitVec {
     #[inline]
     pub fn new() -> Self {
-        Cube { lits: Vec::new() }
+        LitVec { lits: Vec::new() }
     }
 
     #[inline]
-    pub fn subsume(&self, cube: &Cube) -> bool {
+    pub fn subsume(&self, cube: &[Lit]) -> bool {
         let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
         x_lit_set.is_subset(&y_lit_set)
     }
 
     #[inline]
-    pub fn ordered_subsume(&self, cube: &Cube) -> bool {
+    pub fn ordered_subsume(&self, cube: &[Lit]) -> bool {
         debug_assert!(self.is_sorted_by_key(|l| l.var()));
         debug_assert!(cube.is_sorted_by_key(|l| l.var()));
         if self.len() > cube.len() {
@@ -403,7 +275,7 @@ impl Cube {
     }
 
     #[inline]
-    pub fn ordered_subsume_execpt_one(&self, cube: &Cube) -> (bool, Option<Lit>) {
+    pub fn ordered_subsume_execpt_one(&self, cube: &LitVec) -> (bool, Option<Lit>) {
         debug_assert!(self.is_sorted_by_key(|l| l.var()));
         debug_assert!(cube.is_sorted_by_key(|l| l.var()));
         let mut diff = None;
@@ -430,7 +302,7 @@ impl Cube {
     }
 
     #[inline]
-    pub fn intersection(&self, cube: &Cube) -> Cube {
+    pub fn intersection(&self, cube: &LitVec) -> LitVec {
         let x_lit_set = self.iter().collect::<HashSet<&Lit>>();
         let y_lit_set = cube.iter().collect::<HashSet<&Lit>>();
         Self {
@@ -443,10 +315,10 @@ impl Cube {
     }
 
     #[inline]
-    pub fn ordered_intersection(&self, cube: &Cube) -> Cube {
+    pub fn ordered_intersection(&self, cube: &LitVec) -> LitVec {
         debug_assert!(self.is_sorted_by_key(|l| l.var()));
         debug_assert!(cube.is_sorted_by_key(|l| l.var()));
-        let mut res = Cube::new();
+        let mut res = LitVec::new();
         let mut i = 0;
         for l in self.iter() {
             while i < cube.len() && cube[i] < *l {
@@ -461,15 +333,29 @@ impl Cube {
         }
         res
     }
+
+    #[inline]
+    pub fn resolvent(&self, other: &LitVec, v: Var) -> LitVec {
+        let mut new: LitVec = other.iter().filter(|l| l.var() != v).copied().collect();
+        let other_set: HashSet<Lit> = HashSet::from_iter(new.iter().copied());
+        for x in self.iter().filter(|l| l.var() != v) {
+            if other_set.contains(&!*x) {
+                return LitVec::default();
+            } else if !other_set.contains(x) {
+                new.push(*x);
+            }
+        }
+        new
+    }
 }
 
-impl Default for Cube {
+impl Default for LitVec {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Deref for Cube {
+impl Deref for LitVec {
     type Target = Vec<Lit>;
 
     #[inline]
@@ -478,21 +364,21 @@ impl Deref for Cube {
     }
 }
 
-impl DerefMut for Cube {
+impl DerefMut for LitVec {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lits
     }
 }
 
-impl PartialOrd for Cube {
+impl PartialOrd for LitVec {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for Cube {
+impl Ord for LitVec {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         debug_assert!(self.is_sorted_by_key(|x| x.var()));
@@ -509,48 +395,48 @@ impl Ord for Cube {
     }
 }
 
-impl Not for Cube {
-    type Output = Clause;
+impl Not for LitVec {
+    type Output = LitVec;
 
     #[inline]
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
-        Clause { lits }
+        LitVec { lits }
     }
 }
 
-impl Not for &Cube {
-    type Output = Clause;
+impl Not for &LitVec {
+    type Output = LitVec;
 
     #[inline]
     fn not(self) -> Self::Output {
         let lits = self.lits.iter().map(|lit| !*lit).collect();
-        Clause { lits }
+        LitVec { lits }
     }
 }
 
-impl<const N: usize> From<[Lit; N]> for Cube {
+impl<const N: usize> From<[Lit; N]> for LitVec {
     #[inline]
     fn from(s: [Lit; N]) -> Self {
         Self { lits: Vec::from(s) }
     }
 }
 
-impl From<&[Lit]> for Cube {
+impl From<&[Lit]> for LitVec {
     #[inline]
     fn from(s: &[Lit]) -> Self {
         Self { lits: Vec::from(s) }
     }
 }
 
-impl From<Cube> for Vec<Lit> {
+impl From<LitVec> for Vec<Lit> {
     #[inline]
-    fn from(val: Cube) -> Self {
+    fn from(val: LitVec) -> Self {
         val.lits
     }
 }
 
-impl FromIterator<Lit> for Cube {
+impl FromIterator<Lit> for LitVec {
     #[inline]
     fn from_iter<T: IntoIterator<Item = Lit>>(iter: T) -> Self {
         Self {
@@ -559,7 +445,7 @@ impl FromIterator<Lit> for Cube {
     }
 }
 
-impl IntoIterator for Cube {
+impl IntoIterator for LitVec {
     type Item = Lit;
     type IntoIter = std::vec::IntoIter<Lit>;
 
@@ -569,7 +455,7 @@ impl IntoIterator for Cube {
     }
 }
 
-impl<'a> IntoIterator for &'a Cube {
+impl<'a> IntoIterator for &'a LitVec {
     type Item = &'a Lit;
     type IntoIter = slice::Iter<'a, Lit>;
 
@@ -579,14 +465,14 @@ impl<'a> IntoIterator for &'a Cube {
     }
 }
 
-impl AsRef<[Lit]> for Cube {
+impl AsRef<[Lit]> for LitVec {
     #[inline]
     fn as_ref(&self) -> &[Lit] {
         self.as_slice()
     }
 }
 
-impl Display for Cube {
+impl Display for LitVec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.lits.fmt(f)
     }
@@ -594,13 +480,13 @@ impl Display for Cube {
 
 #[derive(Debug, Default, Clone)]
 pub struct Lemma {
-    cube: Cube,
+    cube: LitVec,
     sign: u128,
     hash: u64,
 }
 
 impl Deref for Lemma {
-    type Target = Cube;
+    type Target = LitVec;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -648,7 +534,7 @@ impl Ord for Lemma {
 
 impl Lemma {
     #[inline]
-    pub fn new(mut cube: Cube) -> Self {
+    pub fn new(mut cube: LitVec) -> Self {
         cube.sort();
         let mut sign = 0;
         for l in cube.iter() {
@@ -664,7 +550,7 @@ impl Lemma {
     }
 
     #[inline]
-    pub fn cube(&self) -> &Cube {
+    pub fn cube(&self) -> &LitVec {
         &self.cube
     }
 
@@ -720,31 +606,31 @@ impl Hash for Lemma {
     }
 }
 
-pub fn cnf_lits_and(master: Lit, lits: &[Lit]) -> Vec<Clause> {
+impl Display for Lemma {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.cube, f)
+    }
+}
+
+pub fn cnf_lits_and(master: Lit, lits: &[Lit]) -> Vec<LitVec> {
     let mut cnf = Vec::new();
-    let mut cls = Clause::from([master]);
+    let mut cls = LitVec::from([master]);
     for l in lits.iter() {
-        cnf.push(Clause::from([!master, *l]));
+        cnf.push(LitVec::from([!master, *l]));
         cls.push(!*l);
     }
     cnf.push(cls);
     cnf
 }
 
-pub fn cnf_lits_or(master: Lit, lits: &[Lit]) -> Vec<Clause> {
+pub fn cnf_lits_or(master: Lit, lits: &[Lit]) -> Vec<LitVec> {
     let mut cnf = Vec::new();
-    let mut cls = Clause::from([!master]);
+    let mut cls = LitVec::from([!master]);
     for l in lits.iter() {
-        cnf.push(Clause::from([master, !*l]));
+        cnf.push(LitVec::from([master, !*l]));
         cls.push(*l);
     }
     cnf.push(cls);
     cnf
-}
-
-impl Display for Lemma {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.cube, f)
-    }
 }
