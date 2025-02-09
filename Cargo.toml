@@ -15,5 +15,5 @@ rust-version = "1.85"
 no_bound_check = []
 
 [dependencies]
-giputils = { path = "../giputils", version = "0.2.6" }
+giputils = { path = "../giputils", version = "0.2.8" }
 ahash = "0.8.11"

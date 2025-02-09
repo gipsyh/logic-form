@@ -256,10 +256,40 @@ impl LitVec {
     }
 
     #[inline]
-    pub fn subsume(&self, cube: &[Lit]) -> bool {
-        let x_lit_set = self.iter().collect::<GHashSet<&Lit>>();
-        let y_lit_set = cube.iter().collect::<GHashSet<&Lit>>();
-        x_lit_set.is_subset(&y_lit_set)
+    pub fn subsume(&self, o: &[Lit]) -> bool {
+        if self.len() > o.len() {
+            return false;
+        }
+        'n: for x in self.iter() {
+            for y in o.iter() {
+                if x == y {
+                    continue 'n;
+                }
+            }
+            return false;
+        }
+        true
+    }
+
+    pub fn subsume_execpt_one(&self, o: &[Lit]) -> (bool, Option<Lit>) {
+        if self.len() > o.len() {
+            return (false, None);
+        }
+        let mut diff = None;
+        'n: for x in self.iter() {
+            for y in o.iter() {
+                if x == y {
+                    continue 'n;
+                }
+                if diff.is_none() && x.var() == y.var() {
+                    diff = Some(*x);
+                    continue 'n;
+                }
+            }
+            return (false, None);
+        }
+
+        (diff.is_none(), diff)
     }
 
     #[inline]
@@ -342,17 +372,29 @@ impl LitVec {
     }
 
     #[inline]
-    pub fn resolvent(&self, other: &LitVec, v: Var) -> LitVec {
-        let mut new: LitVec = other.iter().filter(|l| l.var() != v).copied().collect();
-        let other_set: HashSet<Lit> = HashSet::from_iter(new.iter().copied());
-        for x in self.iter().filter(|l| l.var() != v) {
-            if other_set.contains(&!*x) {
-                return LitVec::default();
-            } else if !other_set.contains(x) {
+    pub fn resolvent(&self, other: &LitVec, v: Var) -> Option<LitVec> {
+        let (x, y) = if self.len() < other.len() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+        let mut new = LitVec::new();
+        'n: for x in x.iter() {
+            if x.var() != v {
+                for y in y.iter() {
+                    if x.var() == y.var() {
+                        if *x == !*y {
+                            return None;
+                        } else {
+                            continue 'n;
+                        }
+                    }
+                }
                 new.push(*x);
             }
         }
-        new
+        new.extend(y.iter().filter(|l| l.var() != v).copied());
+        Some(new)
     }
 }
 
@@ -483,6 +525,28 @@ impl Display for LitVec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.lits.fmt(f)
     }
+}
+
+#[inline]
+pub fn subsume_execpt_one(s: &[Lit], o: &[Lit]) -> (bool, Option<Lit>) {
+    if s.len() > o.len() {
+        return (false, None);
+    }
+    let mut diff = None;
+    'n: for x in s.iter() {
+        for y in o.iter() {
+            if x == y {
+                continue 'n;
+            }
+            if diff.is_none() && x.var() == y.var() {
+                diff = Some(*x);
+                continue 'n;
+            }
+        }
+        return (false, None);
+    }
+
+    (diff.is_none(), diff)
 }
 
 #[derive(Debug, Default, Clone)]

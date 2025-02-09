@@ -1,16 +1,23 @@
 use super::Cnf;
-use crate::{Clause, Cube, Lemma, Lit, LitMap, Var};
-use giputils::hash::GHashSet;
-use std::time::Instant;
+use crate::{Lit, LitMap, LitSet, LitVec, Var, VarSet};
+use giputils::{
+    grc::Grc,
+    hash::GHashSet,
+    heap::{BinaryHeap, BinaryHeapCmp},
+};
+use std::{
+    ops::{Index, IndexMut},
+    time::Instant,
+};
 
 #[derive(Debug, Clone, Default)]
-struct Occurs {
+struct Occur {
     occurs: Vec<usize>,
     dirty: bool,
     size: usize,
 }
 
-impl Occurs {
+impl Occur {
     #[inline]
     fn len(&self) -> usize {
         self.size
@@ -44,9 +51,68 @@ impl Occurs {
     }
 
     #[inline]
-    fn remove(&mut self) {
+    fn lazy_remove(&mut self) {
         self.dirty = true;
         self.size -= 1;
+    }
+
+    fn remove(&mut self, cls: usize) {
+        assert!(!self.dirty);
+        self.size -= 1;
+        let len = self.occurs.len();
+        self.occurs.retain(|&i| i != cls);
+        assert!(len == self.occurs.len() + 1);
+    }
+}
+
+struct Occurs {
+    occurs: LitMap<Occur>,
+}
+
+impl Occurs {
+    fn new(cnf: &Cnf) -> Self {
+        let mut occurs: LitMap<Occur> = LitMap::new_with(cnf.max_var());
+        for (i, cls) in cnf.cls.iter().enumerate() {
+            for &lit in cls.iter() {
+                occurs[lit].add(i);
+            }
+        }
+        Self { occurs }
+    }
+
+    #[inline]
+    #[allow(unused)]
+    fn var_num_occurs(&self, v: Var) -> usize {
+        self.occurs[v.lit()].len() + self.occurs[!v.lit()].len()
+    }
+
+    #[inline]
+    fn bve_cost(&self, v: Var) -> isize {
+        let pos = self.occurs[v.lit()].len() as isize;
+        let neg = self.occurs[!v.lit()].len() as isize;
+        pos * neg - pos - neg
+    }
+}
+
+impl BinaryHeapCmp<Var> for Occurs {
+    fn lge(&self, s: Var, o: Var) -> bool {
+        self.bve_cost(s) < self.bve_cost(o)
+    }
+}
+
+impl Index<Lit> for Occurs {
+    type Output = Occur;
+
+    #[inline]
+    fn index(&self, index: Lit) -> &Self::Output {
+        &self.occurs[index]
+    }
+}
+
+impl IndexMut<Lit> for Occurs {
+    #[inline]
+    fn index_mut(&mut self, index: Lit) -> &mut Self::Output {
+        &mut self.occurs[index]
     }
 }
 
@@ -54,35 +120,47 @@ pub struct CnfSimplify {
     cnf: Cnf,
     qassign: Vec<Lit>,
     qassign_head: usize,
-    occurs: LitMap<Occurs>,
-    removed: GHashSet<usize>,
+    occurs: Grc<Occurs>,
     frozen: GHashSet<Var>,
+    in_bve: bool,
+    qbve: BinaryHeap<Var, Occurs>,
+    bve_cand: VarSet,
+    removed: GHashSet<usize>,
+    update: bool,
+    subsume_litcand: LitSet,
 }
 
 impl CnfSimplify {
     pub fn new(cnf: Cnf) -> Self {
-        let mut occurs: LitMap<Occurs> = LitMap::new_with(cnf.max_var());
-        for (i, cls) in cnf.cls.iter().enumerate() {
-            for &lit in cls.iter() {
-                occurs[lit].add(i);
+        let occurs = Grc::new(Occurs::new(&cnf));
+        let mut qeliminate = BinaryHeap::new(occurs.clone());
+        let bve_cand = VarSet::new_with(cnf.max_var());
+        let mut subsume_litcand = LitSet::new_with(cnf.max_var());
+        for v in Var::CONST..=cnf.max_var() {
+            qeliminate.push(v);
+        }
+        let mut qassign = Vec::new();
+        for cls in cnf.iter() {
+            if cls.len() == 1 {
+                qassign.push(cls[0]);
+            }
+            for l in cls {
+                subsume_litcand.insert(*l);
             }
         }
         Self {
             cnf,
-            qassign: Vec::new(),
+            qassign,
             qassign_head: 0,
             occurs,
-            removed: GHashSet::new(),
             frozen: GHashSet::new(),
+            removed: GHashSet::new(),
+            qbve: qeliminate,
+            bve_cand,
+            subsume_litcand,
+            in_bve: false,
+            update: true,
         }
-    }
-
-    #[inline]
-    fn get_occurs(&mut self, lit: Lit) -> Vec<usize> {
-        if self.occurs[lit].dirty {
-            self.occurs[lit].clean(&self.removed);
-        }
-        self.occurs[lit].occurs.clone()
     }
 
     pub fn froze(&mut self, v: Var) {
@@ -90,50 +168,95 @@ impl CnfSimplify {
     }
 
     fn add_clause(&mut self, cls: &[Lit]) {
-        assert!(cls.len() > 1);
+        self.update = true;
+        assert!(!cls.is_empty());
+        if cls.len() == 1 {
+            self.qassign.push(cls[0]);
+        }
         let i = self.cnf.len();
         self.cnf.add_clause(cls);
-        for &lit in self.cnf[i].iter() {
+        for lit in self.cnf[i].clone() {
             self.occurs[lit].add(i);
+            self.qbve.update(lit.var());
+            if self.in_bve {
+                self.bve_cand.insert(lit.var());
+            } else {
+                self.qbve.push(lit.var());
+            }
+            self.subsume_litcand.insert(lit);
         }
     }
 
-    fn remove_cls(&mut self, i: usize) {
+    fn remove_clause(&mut self, i: usize) {
+        self.update = true;
         for &lit in self.cnf[i].iter() {
-            self.occurs[lit].remove();
+            self.occurs[lit].lazy_remove();
+            self.qbve.update(lit.var());
+            if self.in_bve {
+                self.bve_cand.insert(lit.var());
+            } else {
+                self.qbve.push(lit.var());
+            }
         }
         self.removed.insert(i);
     }
 
-    fn remove_lit(&mut self, lit: Lit) {
-        for s in self.get_occurs(lit) {
+    fn remove_lit_in_one(&mut self, lit: Lit, s: usize) {
+        self.update = true;
+        self.cnf[s].retain(|&l| l != lit);
+        assert!(!self.cnf[s].is_empty());
+        if self.cnf[s].len() == 1 {
+            self.qassign.push(self.cnf[s][0]);
+        }
+        self.occurs[lit].clean(&self.removed);
+        self.occurs[lit].remove(s);
+        self.qbve.update(lit.var());
+        for l in self.cnf[s].iter() {
+            if self.in_bve {
+                self.bve_cand.insert(lit.var());
+            } else {
+                self.qbve.push(lit.var());
+            }
+            self.subsume_litcand.insert(*l);
+        }
+    }
+
+    fn remove_lit_in_all(&mut self, lit: Lit) {
+        self.update = true;
+        for s in self.get_occurs(lit).clone() {
             self.cnf[s].retain(|&l| l != lit);
             assert!(!self.cnf[s].is_empty());
             if self.cnf[s].len() == 1 {
                 self.qassign.push(self.cnf[s][0]);
             }
+            for l in self.cnf[s].iter() {
+                if self.in_bve {
+                    self.bve_cand.insert(lit.var());
+                } else {
+                    self.qbve.push(lit.var());
+                }
+                self.subsume_litcand.insert(*l);
+            }
         }
         self.occurs[lit].clear();
+        self.qbve.update(lit.var());
     }
 
-    fn const_prop(&mut self) {
-        while self.qassign_head < self.qassign.len() {
-            let lit = self.qassign[self.qassign_head];
-            for s in self.get_occurs(lit).clone() {
-                self.remove_cls(s);
-            }
-            self.remove_lit(!lit);
-            self.qassign_head += 1;
-        }
+    #[inline]
+    fn get_occurs(&mut self, lit: Lit) -> &Vec<usize> {
+        self.occurs[lit].clean(&self.removed);
+        &self.occurs[lit].occurs
     }
 
     fn const_simp(&mut self) {
-        for cls in self.cnf.iter() {
-            if cls.len() == 1 {
-                self.qassign.push(cls[0]);
+        while self.qassign_head < self.qassign.len() {
+            let lit = self.qassign[self.qassign_head];
+            for s in self.get_occurs(lit).clone() {
+                self.remove_clause(s);
             }
+            self.remove_lit_in_all(!lit);
+            self.qassign_head += 1;
         }
-        self.const_prop();
     }
 
     fn eliminate(&mut self, v: Var) {
@@ -142,50 +265,95 @@ impl CnfSimplify {
         }
         let l = v.lit();
         let origin_cost = self.occurs[l].len() + self.occurs[!l].len();
-        let pos = self.get_occurs(l);
-        let neg = self.get_occurs(!l);
+        let pos = self.get_occurs(l).clone();
+        let neg = self.get_occurs(!l).clone();
         let mut new_cnf = Vec::new();
         for x in pos.iter() {
             for y in neg.iter() {
                 if let Some(r) = self.cnf[*x].resolvent(&self.cnf[*y], v) {
-                    if r.len() > 20 {
-                        return;
-                    }
                     new_cnf.push(r);
                 }
-                if new_cnf.len() > origin_cost {
+                if new_cnf.len() > origin_cost + 5 {
                     return;
                 }
             }
         }
         for n in new_cnf.iter() {
             assert!(!n.is_empty());
-            if n.len() == 1 {
-                todo!();
-            }
-        }
-        for cls in pos.into_iter().chain(neg) {
-            self.remove_cls(cls);
         }
         let new_cnf = clause_subsume_simplify(new_cnf);
+        if new_cnf.len() > origin_cost {
+            return;
+        }
+        for cls in pos.into_iter().chain(neg) {
+            self.remove_clause(cls);
+        }
         for n in new_cnf {
             self.add_clause(&n);
         }
     }
 
     fn bve_simp(&mut self) {
-        let mut v = Vec::from_iter(Var::CONST..=self.cnf.max_var());
-        v.sort_by_key(|v| self.occurs[v.lit()].len() + self.occurs[!v.lit()].len());
-        for v in v.iter() {
-            self.eliminate(*v);
+        self.in_bve = true;
+        while let Some(v) = self.qbve.pop() {
+            self.eliminate(v);
+        }
+        for &v in self.bve_cand.iter() {
+            self.qbve.push(v);
+        }
+        self.bve_cand.clear();
+        self.in_bve = false;
+    }
+
+    fn subsume_simp(&mut self) {
+        let mut cls_cand = GHashSet::new();
+        for l in self.subsume_litcand.elements().to_vec() {
+            for s in self.get_occurs(l).clone() {
+                cls_cand.insert(s);
+            }
+        }
+        self.subsume_litcand.clear();
+        for i in cls_cand {
+            if self.removed.contains(&i) {
+                continue;
+            }
+            let best_lit = *self.cnf[i]
+                .iter()
+                .min_by_key(|l| self.occurs[**l].len())
+                .unwrap();
+            for j in self.get_occurs(best_lit).clone() {
+                if i == j {
+                    continue;
+                }
+                let (res, diff) = self.cnf[i].subsume_execpt_one(&self.cnf[j]);
+                if res {
+                    self.remove_clause(j);
+                } else if let Some(diff) = diff {
+                    if self.cnf[i].len() == self.cnf[j].len() {
+                        self.remove_clause(j);
+                        self.remove_lit_in_one(diff, i);
+                    } else {
+                        self.remove_lit_in_one(!diff, j);
+                    }
+                }
+            }
         }
     }
 
     pub fn simplify(&mut self) -> Cnf {
-        self.const_simp();
         let start = Instant::now();
-        self.bve_simp();
+        while self.update {
+            self.update = false;
+            dbg!(self.cnf.len() - self.removed.len());
+            self.const_simp();
+            dbg!(self.cnf.len() - self.removed.len());
+            self.bve_simp();
+            dbg!(self.cnf.len() - self.removed.len());
+            self.subsume_simp();
+            dbg!(self.cnf.len() - self.removed.len());
+        }
         dbg!(start.elapsed());
+
         let mut res = Cnf::new();
         for s in 0..self.cnf.len() {
             if !self.removed.contains(&s) {
@@ -201,43 +369,36 @@ impl CnfSimplify {
     }
 }
 
-fn clause_subsume_simplify(lemmas: Vec<Clause>) -> Vec<Clause> {
-    let mut lemmas: Vec<Lemma> = lemmas
-        .iter()
-        .map(|cls| Lemma::new(Cube::from(cls.as_slice())))
-        .collect();
-    lemmas.sort_by_key(|l| l.len());
+fn clause_subsume_simplify(mut cls: Vec<LitVec>) -> Vec<LitVec> {
+    cls.sort_by_key(|l| l.len());
+    for c in cls.iter_mut() {
+        c.sort();
+    }
     let mut i = 0;
-    while i < lemmas.len() {
-        if lemmas[i].is_empty() {
+    while i < cls.len() {
+        if cls[i].is_empty() {
             i += 1;
             continue;
         }
         let mut update = false;
-        for j in 0..lemmas.len() {
+        for j in 0..cls.len() {
             if i == j {
                 continue;
             }
-            if lemmas[j].is_empty() {
+            if cls[j].is_empty() {
                 continue;
             }
-            let (res, diff) = lemmas[i].subsume_execpt_one(&lemmas[j]);
+            let (res, diff) = cls[i].ordered_subsume_execpt_one(&cls[j]);
             if res {
-                lemmas[j] = Default::default();
+                cls[j] = Default::default();
                 continue;
             } else if let Some(diff) = diff {
-                if lemmas[i].len() == lemmas[j].len() {
+                if cls[i].len() == cls[j].len() {
                     update = true;
-                    let mut cube = lemmas[i].cube().clone();
-                    cube.retain(|l| *l != diff);
-                    assert!(cube.len() + 1 == lemmas[i].len());
-                    lemmas[i] = Lemma::new(cube);
-                    lemmas[j] = Default::default();
+                    cls[i].retain(|l| *l != diff);
+                    cls[j] = Default::default();
                 } else {
-                    let mut cube = lemmas[j].cube().clone();
-                    cube.retain(|l| *l != !diff);
-                    assert!(cube.len() + 1 == lemmas[j].len());
-                    lemmas[j] = Lemma::new(cube);
+                    cls[j].retain(|l| *l != !diff);
                 }
             }
         }
@@ -245,9 +406,6 @@ fn clause_subsume_simplify(lemmas: Vec<Clause>) -> Vec<Clause> {
             i += 1;
         }
     }
-    lemmas.retain(|l| !l.is_empty());
-    lemmas
-        .into_iter()
-        .map(|l| Clause::from(l.cube().as_slice()))
-        .collect()
+    cls.retain(|l| !l.is_empty());
+    cls
 }

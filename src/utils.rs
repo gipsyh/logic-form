@@ -199,6 +199,13 @@ impl VarSet {
     }
 
     #[inline]
+    pub fn new_with(var: Var) -> Self {
+        let mut res = Self::new();
+        res.reserve(var);
+        res
+    }
+
+    #[inline]
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> u32 {
         self.set.len() as _
@@ -245,6 +252,11 @@ impl VarSet {
     pub fn swap(&mut self, a: u32, b: u32) {
         self.set.swap(a as usize, b as usize)
     }
+
+    #[inline]
+    pub fn elements(&self) -> &[Var] {
+        &self.set
+    }
 }
 
 impl Index<u32> for VarSet {
@@ -258,7 +270,7 @@ impl Index<u32> for VarSet {
 
 #[derive(Default, Debug, Clone)]
 pub struct LitSet {
-    pub set: Vec<Lit>,
+    set: Vec<Lit>,
     has: LitMap<bool>,
 }
 
@@ -266,6 +278,13 @@ impl LitSet {
     #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    #[inline]
+    pub fn new_with(var: Var) -> Self {
+        let mut res = Self::new();
+        res.reserve(var);
+        res
     }
 
     #[inline]
@@ -297,6 +316,11 @@ impl LitSet {
     #[inline]
     pub fn iter(&self) -> slice::Iter<Lit> {
         self.set.iter()
+    }
+
+    #[inline]
+    pub fn elements(&self) -> &[Lit] {
+        &self.set
     }
 }
 
