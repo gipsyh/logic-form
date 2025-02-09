@@ -256,6 +256,13 @@ impl LitVec {
     }
 
     #[inline]
+    pub fn new_with(c: usize) -> Self {
+        LitVec {
+            lits: Vec::with_capacity(c),
+        }
+    }
+
+    #[inline]
     pub fn subsume(&self, o: &[Lit]) -> bool {
         if self.len() > o.len() {
             return false;
@@ -293,7 +300,7 @@ impl LitVec {
     }
 
     #[inline]
-    pub fn ordered_subsume(&self, cube: &[Lit]) -> bool {
+    pub fn ordered_subsume(&self, cube: &LitVec) -> bool {
         debug_assert!(self.is_sorted_by_key(|l| l.var()));
         debug_assert!(cube.is_sorted_by_key(|l| l.var()));
         if self.len() > cube.len() {
@@ -392,6 +399,38 @@ impl LitVec {
                 }
                 new.push(*x);
             }
+        }
+        new.extend(y.iter().filter(|l| l.var() != v).copied());
+        Some(new)
+    }
+
+    #[inline]
+    pub fn ordered_resolvent(&self, other: &LitVec, v: Var) -> Option<LitVec> {
+        debug_assert!(self.is_sorted_by_key(|l| l.var()));
+        debug_assert!(other.is_sorted_by_key(|l| l.var()));
+        let (x, y) = if self.len() < other.len() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+        let mut new = LitVec::new_with(self.len() + other.len());
+        let (mut i, mut j) = (0, 0);
+        while i < x.len() {
+            if x[i].var() == v {
+                i += 1;
+                continue;
+            }
+            while j < y.len() && y[j].var() < x[i].var() {
+                j += 1;
+            }
+            if j < y.len() && x[i].var() == y[j].var() {
+                if x[i] == !y[j] {
+                    return None;
+                }
+            } else {
+                new.push(x[i]);
+            }
+            i += 1;
         }
         new.extend(y.iter().filter(|l| l.var() != v).copied());
         Some(new)
@@ -525,28 +564,6 @@ impl Display for LitVec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.lits.fmt(f)
     }
-}
-
-#[inline]
-pub fn subsume_execpt_one(s: &[Lit], o: &[Lit]) -> (bool, Option<Lit>) {
-    if s.len() > o.len() {
-        return (false, None);
-    }
-    let mut diff = None;
-    'n: for x in s.iter() {
-        for y in o.iter() {
-            if x == y {
-                continue 'n;
-            }
-            if diff.is_none() && x.var() == y.var() {
-                diff = Some(*x);
-                continue 'n;
-            }
-        }
-        return (false, None);
-    }
-
-    (diff.is_none(), diff)
 }
 
 #[derive(Debug, Default, Clone)]

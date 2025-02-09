@@ -131,7 +131,10 @@ pub struct CnfSimplify {
 }
 
 impl CnfSimplify {
-    pub fn new(cnf: Cnf) -> Self {
+    pub fn new(mut cnf: Cnf) -> Self {
+        for cls in cnf.iter_mut() {
+            cls.sort();
+        }
         let occurs = Grc::new(Occurs::new(&cnf));
         let mut qeliminate = BinaryHeap::new(occurs.clone());
         let bve_cand = VarSet::new_with(cnf.max_var());
@@ -270,7 +273,7 @@ impl CnfSimplify {
         let mut new_cnf = Vec::new();
         for x in pos.iter() {
             for y in neg.iter() {
-                if let Some(r) = self.cnf[*x].resolvent(&self.cnf[*y], v) {
+                if let Some(r) = self.cnf[*x].ordered_resolvent(&self.cnf[*y], v) {
                     new_cnf.push(r);
                 }
                 if new_cnf.len() > origin_cost + 5 {
@@ -288,7 +291,8 @@ impl CnfSimplify {
         for cls in pos.into_iter().chain(neg) {
             self.remove_clause(cls);
         }
-        for n in new_cnf {
+        for mut n in new_cnf {
+            n.sort();
             self.add_clause(&n);
         }
     }
@@ -325,7 +329,7 @@ impl CnfSimplify {
                 if i == j {
                     continue;
                 }
-                let (res, diff) = self.cnf[i].subsume_execpt_one(&self.cnf[j]);
+                let (res, diff) = self.cnf[i].ordered_subsume_execpt_one(&self.cnf[j]);
                 if res {
                     self.remove_clause(j);
                 } else if let Some(diff) = diff {
@@ -344,13 +348,13 @@ impl CnfSimplify {
         let start = Instant::now();
         while self.update {
             self.update = false;
-            dbg!(self.cnf.len() - self.removed.len());
+            // dbg!(self.cnf.len() - self.removed.len());
             self.const_simp();
-            dbg!(self.cnf.len() - self.removed.len());
+            // dbg!(self.cnf.len() - self.removed.len());
             self.bve_simp();
-            dbg!(self.cnf.len() - self.removed.len());
+            // dbg!(self.cnf.len() - self.removed.len());
             self.subsume_simp();
-            dbg!(self.cnf.len() - self.removed.len());
+            // dbg!(self.cnf.len() - self.removed.len());
         }
         dbg!(start.elapsed());
 
