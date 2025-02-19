@@ -3,7 +3,10 @@ pub mod simp;
 use crate::{Lit, LitVec, Var, VarMap};
 use giputils::hash::{GHashMap, GHashSet};
 use simp::CnfSimplify;
-use std::ops::{Deref, DerefMut};
+use std::{
+    iter::once,
+    ops::{Deref, DerefMut},
+};
 
 #[derive(Debug, Clone)]
 pub struct Cnf {
@@ -111,9 +114,8 @@ impl Cnf {
         self.add_clauses(rel.into_iter());
     }
 
-    pub fn arrange(&mut self) -> GHashMap<Var, Var> {
-        let mut domain = GHashSet::new();
-        domain.insert(Var::new(0));
+    pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
+        let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.cls.iter() {
             for l in cls.iter() {
                 domain.insert(l.var());
@@ -288,9 +290,9 @@ impl DagCnf {
         compressed.insert(v);
     }
 
-    pub fn arrange(&mut self) -> GHashMap<Var, Var> {
+    pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
         let root = Vec::from_iter(self.root());
-        let map = self.cnf.arrange();
+        let map = self.cnf.arrange(additional);
         let mut compressed = GHashSet::new();
         for v in root {
             self.compress_deps(v, &map, &mut compressed);
@@ -309,13 +311,12 @@ impl DagCnf {
         self.cnf.set_cls(cls);
     }
 
-    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) {
-        dbg!(self.cnf.len());
+    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Cnf{
         let mut simp = CnfSimplify::new(self.cnf.clone());
         for v in frozen {
             simp.froze(v);
         }
-        dbg!(simp.simplify().len());
+        simp.simplify()
     }
 }
 
