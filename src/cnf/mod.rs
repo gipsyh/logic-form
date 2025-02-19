@@ -234,7 +234,7 @@ impl DagCnf {
         self.dep[n.var()].extend_from_slice(&[c.var(), t.var(), e.var()]);
     }
 
-    pub fn get_coi(&self, var: impl Iterator<Item = Var>) -> Vec<Var> {
+    pub fn get_coi(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
         let mut marked = GHashSet::new();
         let mut queue = vec![];
         for v in var {
@@ -249,7 +249,7 @@ impl DagCnf {
                 }
             }
         }
-        Vec::from_iter(marked)
+        marked
     }
 
     pub fn root(&self) -> GHashSet<Var> {
