@@ -311,7 +311,7 @@ impl DagCnf {
         self.cnf.set_cls(cls);
     }
 
-    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Cnf{
+    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Cnf {
         let mut simp = CnfSimplify::new(self.cnf.clone());
         for v in frozen {
             simp.froze(v);
