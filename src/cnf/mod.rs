@@ -1,8 +1,7 @@
 pub mod simp;
 
-use crate::{Lit, LitVec, Var, VarMap};
+use crate::{Lit, LitVec, Var};
 use giputils::hash::{GHashMap, GHashSet};
-use simp::CnfSimplify;
 use std::{
     iter::once,
     ops::{Deref, DerefMut},
@@ -61,59 +60,6 @@ impl Cnf {
         self.add_clauses(rel.into_iter());
     }
 
-    #[inline]
-    pub fn add_and_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        let rel = vec![
-            LitVec::from([x, !n]),
-            LitVec::from([y, !n]),
-            LitVec::from([!x, !y, n]),
-        ];
-        self.add_clauses(rel.into_iter());
-    }
-
-    #[inline]
-    pub fn add_or_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        let rel = vec![
-            LitVec::from([!x, n]),
-            LitVec::from([!y, n]),
-            LitVec::from([x, y, !n]),
-        ];
-        self.add_clauses(rel.into_iter());
-    }
-
-    #[inline]
-    pub fn add_xor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        let rel = vec![
-            LitVec::from([!x, y, n]),
-            LitVec::from([x, !y, n]),
-            LitVec::from([x, y, !n]),
-            LitVec::from([!x, !y, !n]),
-        ];
-        self.add_clauses(rel.into_iter());
-    }
-
-    #[inline]
-    pub fn add_xnor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        let rel = vec![
-            LitVec::from([!x, y, !n]),
-            LitVec::from([x, !y, !n]),
-            LitVec::from([x, y, n]),
-            LitVec::from([!x, !y, n]),
-        ];
-        self.add_clauses(rel.into_iter());
-    }
-
-    #[inline]
-    pub fn add_ite_rel(&mut self, n: Lit, c: Lit, t: Lit, e: Lit) {
-        let rel = vec![
-            LitVec::from([t, !c, !n]),
-            LitVec::from([!t, !c, n]),
-            LitVec::from([e, c, !n]),
-            LitVec::from([!e, c, n]),
-        ];
-        self.add_clauses(rel.into_iter());
-    }
-
     pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.cls.iter() {
@@ -135,11 +81,6 @@ impl Cnf {
         }
         self.max_var = Var::new(domain.len() - 1);
         domain_map
-    }
-
-    /// # Safety
-    pub unsafe fn set_cls(&mut self, cls: Vec<LitVec>) {
-        self.cls = cls;
     }
 }
 
@@ -165,175 +106,5 @@ impl Default for Cnf {
             max_var: Var(0),
             cls: vec![LitVec::from([Lit::constant(true)])],
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct DagCnf {
-    cnf: Cnf,
-    pub dep: VarMap<Vec<Var>>,
-}
-
-impl DagCnf {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    #[inline]
-    pub fn new_var(&mut self) -> Var {
-        let n = self.cnf.new_var();
-        self.dep.reserve(n);
-        n
-    }
-
-    #[inline]
-    pub fn max_var(&self) -> Var {
-        self.cnf.max_var()
-    }
-
-    #[inline]
-    pub fn add_rel(&mut self, n: Var, rel: &[LitVec]) {
-        let mut dep = GHashSet::from_iter(rel.iter().flatten().map(|l| l.var()));
-        dep.remove(&n);
-        self.dep[n].extend(dep.iter());
-    }
-
-    #[inline]
-    pub fn add_assign_rel(&mut self, n: Lit, s: Lit) {
-        self.cnf.add_assign_rel(n, s);
-        self.dep[n.var()].push(s.var());
-    }
-
-    #[inline]
-    pub fn add_and_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        self.cnf.add_and_rel(n, x, y);
-        self.dep[n.var()].extend_from_slice(&[x.var(), y.var()]);
-    }
-
-    #[inline]
-    pub fn add_or_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        self.cnf.add_or_rel(n, x, y);
-        self.dep[n.var()].extend_from_slice(&[x.var(), y.var()]);
-    }
-
-    #[inline]
-    pub fn add_xor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        self.cnf.add_xor_rel(n, x, y);
-        self.dep[n.var()].extend_from_slice(&[x.var(), y.var()]);
-    }
-
-    #[inline]
-    pub fn add_xnor_rel(&mut self, n: Lit, x: Lit, y: Lit) {
-        self.cnf.add_xnor_rel(n, x, y);
-        self.dep[n.var()].extend_from_slice(&[x.var(), y.var()]);
-    }
-
-    #[inline]
-    pub fn add_ite_rel(&mut self, n: Lit, c: Lit, t: Lit, e: Lit) {
-        self.cnf.add_ite_rel(n, c, t, e);
-        self.dep[n.var()].extend_from_slice(&[c.var(), t.var(), e.var()]);
-    }
-
-    pub fn get_coi(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
-        let mut marked = GHashSet::new();
-        let mut queue = vec![];
-        for v in var {
-            marked.insert(v);
-            queue.push(v);
-        }
-        while let Some(v) = queue.pop() {
-            for d in self.dep[v].iter() {
-                if !marked.contains(d) {
-                    marked.insert(*d);
-                    queue.push(*d);
-                }
-            }
-        }
-        marked
-    }
-
-    pub fn root(&self) -> GHashSet<Var> {
-        let mut root = GHashSet::from_iter(
-            (Var::new(0)..=self.max_var()).filter(|v| !self.dep[*v].is_empty()),
-        );
-        for d in self.dep.iter() {
-            for d in d.iter() {
-                root.remove(d);
-            }
-        }
-        root
-    }
-
-    fn compress_deps(
-        &mut self,
-        v: Var,
-        domain: &GHashMap<Var, Var>,
-        compressed: &mut GHashSet<Var>,
-    ) {
-        if compressed.contains(&v) {
-            return;
-        }
-        for d in self.dep[v].clone() {
-            self.compress_deps(d, domain, compressed);
-        }
-        let mut dep = GHashSet::new();
-        for d in self.dep[v].iter() {
-            if domain.contains_key(d) {
-                dep.insert(*d);
-                continue;
-            }
-            for dd in self.dep[*d].iter() {
-                dep.insert(*dd);
-            }
-        }
-        self.dep[v] = dep.into_iter().collect();
-        compressed.insert(v);
-    }
-
-    pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
-        let root = Vec::from_iter(self.root());
-        let map = self.cnf.arrange(additional);
-        let mut compressed = GHashSet::new();
-        for v in root {
-            self.compress_deps(v, &map, &mut compressed);
-        }
-        let mut dep = VarMap::new_with(self.cnf.max_var());
-        for (f, t) in map.iter() {
-            let fdep: Vec<Var> = self.dep[*f].iter().map(|v| map[v]).collect();
-            dep[*t] = fdep;
-        }
-        self.dep = dep;
-        map
-    }
-
-    /// # Safety
-    pub unsafe fn set_cls(&mut self, cls: Vec<LitVec>) {
-        self.cnf.set_cls(cls);
-    }
-
-    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Cnf {
-        let mut simp = CnfSimplify::new(self.cnf.clone());
-        for v in frozen {
-            simp.froze(v);
-        }
-        simp.simplify()
-    }
-}
-
-impl Default for DagCnf {
-    fn default() -> Self {
-        Self {
-            cnf: Default::default(),
-            dep: VarMap::new_with(Var(0)),
-        }
-    }
-}
-
-impl Deref for DagCnf {
-    type Target = [LitVec];
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        self.cnf.deref()
     }
 }
