@@ -1,7 +1,7 @@
 #![feature(step_trait)]
 
 mod cnf;
-pub mod dagcnf;
+mod dagcnf;
 pub mod dimacs;
 mod lbool;
 mod lemma;
@@ -10,6 +10,7 @@ mod litvvec;
 mod utils;
 
 pub use cnf::*;
+pub use dagcnf::*;
 pub use lbool::*;
 pub use lemma::*;
 pub use litvec::*;
