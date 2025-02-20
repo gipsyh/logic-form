@@ -1,6 +1,7 @@
 #![feature(step_trait)]
 
 mod cnf;
+pub mod dagcnf;
 pub mod dimacs;
 mod lbool;
 mod lemma;
