@@ -1,7 +1,7 @@
 use crate::{Lit, LitVec};
 use std::{
     ops::{Deref, DerefMut},
-    slice,
+    slice, vec,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -136,6 +136,16 @@ impl DerefMut for LitVvec {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.vec
+    }
+}
+
+impl IntoIterator for LitVvec {
+    type Item = LitVec;
+    type IntoIter = vec::IntoIter<LitVec>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.vec.into_iter()
     }
 }
 
