@@ -1,6 +1,7 @@
 use crate::{Lit, LitSet, LitVec};
 use ahash::AHasher;
 use std::hash::{Hash, Hasher};
+use std::slice;
 use std::{
     cmp::Ordering,
     fmt::{self, Display},
@@ -182,4 +183,24 @@ pub fn lemmas_subsume_simplify(mut lemmas: Vec<Lemma>) -> Vec<Lemma> {
     }
     lemmas.retain(|l| !l.is_empty());
     lemmas
+}
+
+impl IntoIterator for Lemma {
+    type Item = Lit;
+    type IntoIter = std::vec::IntoIter<Lit>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.cube.clone().into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Lemma {
+    type Item = &'a Lit;
+    type IntoIter = slice::Iter<'a, Lit>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.cube.iter()
+    }
 }
