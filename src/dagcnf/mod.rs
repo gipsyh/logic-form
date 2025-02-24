@@ -1,4 +1,6 @@
+mod occur;
 pub mod simplify;
+pub mod simulate;
 
 use crate::{Lit, LitVec, LitVvec, Var, VarMap};
 use giputils::hash::{GHashMap, GHashSet};

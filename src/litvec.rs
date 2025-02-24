@@ -26,6 +26,18 @@ impl LitVec {
     }
 
     #[inline]
+    pub fn last(&self) -> Lit {
+        #[cfg(debug_assertions)]
+        {
+            self.lits.last().copied().unwrap()
+        }
+        #[cfg(not(debug_assertions))]
+        unsafe {
+            self.lits.last().copied().unwrap_unchecked()
+        }
+    }
+
+    #[inline]
     pub fn subsume(&self, o: &[Lit]) -> bool {
         if self.len() > o.len() {
             return false;

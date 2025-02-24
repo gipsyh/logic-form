@@ -158,3 +158,12 @@ impl<'a> IntoIterator for &'a LitVvec {
         self.vec.iter()
     }
 }
+
+impl FromIterator<LitVec> for LitVvec {
+    #[inline]
+    fn from_iter<T: IntoIterator<Item = LitVec>>(iter: T) -> Self {
+        Self {
+            vec: Vec::from_iter(iter),
+        }
+    }
+}

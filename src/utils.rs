@@ -113,12 +113,14 @@ pub struct LitMap<T> {
     map: Vec<T>,
 }
 
-impl<T: Default> LitMap<T> {
+impl<T> LitMap<T> {
     #[inline]
     pub fn new() -> Self {
-        Self::default()
+        Self { map: Vec::new() }
     }
+}
 
+impl<T: Default> LitMap<T> {
     #[inline]
     pub fn new_with(var: Var) -> Self {
         let mut res = Self::new();

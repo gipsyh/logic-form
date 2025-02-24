@@ -141,3 +141,45 @@ impl Display for Lemma {
         Display::fmt(&self.cube, f)
     }
 }
+
+pub fn lemmas_subsume_simplify(mut lemmas: Vec<Lemma>) -> Vec<Lemma> {
+    lemmas.sort_by_key(|l| l.len());
+    let mut i = 0;
+    while i < lemmas.len() {
+        if lemmas[i].is_empty() {
+            i += 1;
+            continue;
+        }
+        let mut update = false;
+        for j in 0..lemmas.len() {
+            if i == j {
+                continue;
+            }
+            if lemmas[j].is_empty() {
+                continue;
+            }
+            let (res, diff) = lemmas[i].subsume_execpt_one(&lemmas[j]);
+            if res {
+                lemmas[j] = Default::default();
+                continue;
+            } else if let Some(diff) = diff {
+                if lemmas[i].len() == lemmas[j].len() {
+                    update = true;
+                    let mut cube = lemmas[i].cube().clone();
+                    cube.retain(|l| *l != diff);
+                    lemmas[i] = Lemma::new(cube);
+                    lemmas[j] = Default::default();
+                } else {
+                    let mut cube = lemmas[j].cube().clone();
+                    cube.retain(|l| *l != !diff);
+                    lemmas[j] = Lemma::new(cube);
+                }
+            }
+        }
+        if !update {
+            i += 1;
+        }
+    }
+    lemmas.retain(|l| !l.is_empty());
+    lemmas
+}
