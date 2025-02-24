@@ -6,7 +6,8 @@ use crate::{Lit, LitVec, LitVvec, Var, VarMap};
 use giputils::hash::{GHashMap, GHashSet};
 use simplify::DagCnfSimplify;
 use std::{
-    iter::{once, Flatten},
+    iter::{once, Flatten, Zip},
+    ops::Range,
     slice,
 };
 
@@ -45,12 +46,17 @@ impl DagCnf {
 
     #[inline]
     pub fn len(&self) -> usize {
-        self.iter().count()
+        self.clause().count()
     }
 
     #[inline]
-    pub fn iter(&self) -> Flatten<slice::Iter<'_, LitVvec>> {
+    pub fn clause(&self) -> Flatten<slice::Iter<'_, LitVvec>> {
         self.cnf.iter().flatten()
+    }
+
+    #[inline]
+    pub fn iter(&self) -> Zip<Range<Var>, std::slice::Iter<'_, LitVvec>> {
+        (Var::CONST..self.max_var).zip(self.cnf.iter())
     }
 
     #[inline]
@@ -94,7 +100,7 @@ impl DagCnf {
 
     pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
-        for cls in self.iter() {
+        for cls in self.clause() {
             for l in cls.iter() {
                 domain.insert(l.var());
             }
