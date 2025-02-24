@@ -172,11 +172,6 @@ impl DagCnfSimplify {
     pub fn simplify(&mut self) -> DagCnf {
         self.bve_simplify();
         self.subsume_simplify();
-        for v in Var(1)..=self.max_var {
-            if self.frozen.contains(&v) {
-                continue;
-            }
-        }
         let mut dagcnf = DagCnf::new();
         dagcnf.new_var_to(self.max_var);
         for v in Var(1)..=self.max_var {

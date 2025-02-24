@@ -125,7 +125,7 @@ impl DagCnf {
 
     pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Self {
         let mut simp = DagCnfSimplify::new(self);
-        for v in frozen {
+        for v in frozen.chain(once(Var::CONST)) {
             simp.froze(v);
         }
         simp.simplify()
