@@ -1,62 +1,14 @@
 use super::{occur::Occurs, DagCnf};
-use crate::{lemmas_subsume_simplify, Lemma, LitMap, LitVec, LitVvec, Var, VarMap};
-use giputils::{
-    allocator::Gallocator,
-    grc::Grc,
-    hash::GHashSet,
-    heap::{BinaryHeap, BinaryHeapCmp},
-};
-use std::ops::{Deref, DerefMut, Index, IndexMut};
-
-struct Out(VarMap<GHashSet<Var>>);
-
-impl Deref for Out {
-    type Target = VarMap<GHashSet<Var>>;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Out {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Index<Var> for Out {
-    type Output = GHashSet<Var>;
-
-    #[inline]
-    fn index(&self, index: Var) -> &Self::Output {
-        &self.0[index]
-    }
-}
-
-impl IndexMut<Var> for Out {
-    #[inline]
-    fn index_mut(&mut self, index: Var) -> &mut Self::Output {
-        &mut self.0[index]
-    }
-}
-
-impl BinaryHeapCmp<Var> for Out {
-    #[inline]
-    fn lge(&self, s: Var, o: Var) -> bool {
-        self[s].len() < self[o].len()
-    }
-}
+use crate::{lemmas_subsume_simplify, Lemma, LitMap, LitVec, LitVvec, Var};
+use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
 
 pub struct DagCnfSimplify {
     cdb: Gallocator<Lemma>,
     max_var: Var,
     cnf: LitMap<Vec<u32>>,
-    occur: Occurs,
-    out: Grc<Out>,
+    occur: Grc<Occurs>,
     frozen: GHashSet<Var>,
-    qbve: BinaryHeap<Var, Out>,
+    qbve: BinaryHeap<Var, Occurs>,
 }
 
 impl DagCnfSimplify {
@@ -64,16 +16,14 @@ impl DagCnfSimplify {
         let cdb = Gallocator::new();
         let removed = cdb.get_removed();
         let max_var = dagcnf.max_var;
-        let occur = Occurs::new_with(max_var, removed);
+        let occur = Grc::new(Occurs::new_with(max_var, removed));
         let cnf = LitMap::new_with(max_var);
-        let out = Grc::new(Out(VarMap::new_with(max_var)));
-        let qbve = BinaryHeap::new(out.clone());
+        let qbve = BinaryHeap::new(occur.clone());
         let mut res = Self {
             cdb,
             occur,
             max_var,
             cnf,
-            out,
             frozen: Default::default(),
             qbve,
         };
@@ -102,9 +52,8 @@ impl DagCnfSimplify {
         for &l in self.cdb[relid].iter() {
             let lv = l.var();
             if lv != n.var() {
-                self.out[lv].insert(n.var());
-                self.qbve.down(lv);
                 self.occur.add(l, relid);
+                self.qbve.down(lv);
             }
         }
     }
@@ -141,7 +90,6 @@ impl DagCnfSimplify {
                 let lv = l.var();
                 if lv != n {
                     self.occur.del(l, cls);
-                    self.out[lv].remove(&n);
                     self.qbve.up(lv);
                 }
             }
@@ -149,7 +97,6 @@ impl DagCnfSimplify {
         }
         self.cnf[ln].clear();
         self.cnf[!ln].clear();
-        self.out[n].clear();
     }
 
     fn resolvent(&self, pcnf: &[u32], ncnf: &[u32], pivot: Var, limit: usize) -> Option<LitVvec> {
@@ -202,10 +149,10 @@ impl DagCnfSimplify {
         let res = clause_subsume_simplify(res);
         opos.extend(oneg);
         self.remove_rel(opos);
+        self.remove_node(v);
         for r in res {
             self.add_rel(r);
         }
-        self.remove_node(v);
     }
 
     pub fn bve_simplify(&mut self) {

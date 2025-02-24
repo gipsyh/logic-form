@@ -1,5 +1,5 @@
 use crate::{Lit, LitMap, Var};
-use giputils::{grc::Grc, gvec::Gvec, hash::GHashSet};
+use giputils::{grc::Grc, gvec::Gvec, hash::GHashSet, heap::BinaryHeapCmp};
 
 #[derive(Debug, Clone, Default)]
 pub struct Occur {
@@ -29,6 +29,7 @@ impl Occur {
     }
 
     #[inline]
+    #[allow(unused)]
     fn clear(&mut self) {
         self.occur.clear();
         self.dirty = false;
@@ -46,14 +47,6 @@ impl Occur {
         self.dirty = true;
         self.size -= 1;
     }
-
-    // pub fn remove(&mut self, cls: u32) {
-    //     self.clean();
-    //     self.size -= 1;
-    //     let len = self.occur.len();
-    //     self.occur.retain(|&i| i != cls);
-    //     assert!(len == self.occur.len() + 1);
-    // }
 }
 
 pub struct Occurs {
@@ -104,5 +97,13 @@ impl Occurs {
     pub fn get(&mut self, lit: Lit) -> &[u32] {
         self.occurs[lit].clean(&self.removed);
         &self.occurs[lit].occur
+    }
+}
+
+impl BinaryHeapCmp<Var> for Occurs {
+    #[inline]
+    fn lge(&self, s: Var, o: Var) -> bool {
+        self.num_occur(s.lit()) + self.num_occur(!s.lit())
+            < self.num_occur(o.lit()) + self.num_occur(!o.lit())
     }
 }
