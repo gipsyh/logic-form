@@ -187,7 +187,7 @@ impl DagCnfSimplify {
 }
 
 fn clause_subsume_simplify(lemmas: LitVvec) -> LitVvec {
-    let lemmas: Vec<Lemma> = lemmas.into_iter().map(|cls| Lemma::new(cls)).collect();
+    let lemmas: Vec<Lemma> = lemmas.into_iter().map(Lemma::new).collect();
     let lemmas = lemmas_subsume_simplify(lemmas);
     lemmas
         .into_iter()
