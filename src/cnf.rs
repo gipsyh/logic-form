@@ -1,6 +1,4 @@
-pub mod simp;
-
-use crate::{Lit, LitVec, Var};
+use crate::{DagCnf, Lit, LitVec, Var};
 use giputils::hash::{GHashMap, GHashSet};
 use std::{
     iter::once,
@@ -54,12 +52,6 @@ impl Cnf {
         &self.cls
     }
 
-    #[inline]
-    pub fn add_assign_rel(&mut self, n: Lit, s: Lit) {
-        let rel = vec![LitVec::from([n, !s]), LitVec::from([!n, s])];
-        self.add_clauses(rel.into_iter());
-    }
-
     pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.cls.iter() {
@@ -105,6 +97,16 @@ impl Default for Cnf {
         Self {
             max_var: Var(0),
             cls: vec![LitVec::from([Lit::constant(true)])],
+        }
+    }
+}
+
+impl DagCnf {
+    #[inline]
+    pub fn lower(&self) -> Cnf {
+        Cnf {
+            max_var: self.max_var(),
+            cls: self.clause().cloned().collect(),
         }
     }
 }
