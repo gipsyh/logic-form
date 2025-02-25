@@ -152,10 +152,7 @@ pub fn lemmas_subsume_simplify(mut lemmas: Vec<Lemma>) -> Vec<Lemma> {
             continue;
         }
         let mut update = false;
-        for j in 0..lemmas.len() {
-            if i == j {
-                continue;
-            }
+        for j in i + 1..lemmas.len() {
             if lemmas[j].is_empty() {
                 continue;
             }

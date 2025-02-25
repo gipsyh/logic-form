@@ -131,8 +131,8 @@ impl DagCnfSimplify {
         }
         let (pos, neg) = (self.cnf[lv].clone(), self.cnf[!lv].clone());
         let mut ncost = 0;
-        let mut opos = self.occur.get(v.lit()).to_vec();
-        let oneg = self.occur.get(!v.lit()).to_vec();
+        let mut opos = self.occur.get(lv).to_vec();
+        let oneg = self.occur.get(!lv).to_vec();
         let Some(respn) = self.resolvent(&pos, &oneg, v, ocost - ncost) else {
             return;
         };
@@ -164,11 +164,17 @@ impl DagCnfSimplify {
         }
     }
 
+    // fn lit_subsume_simplify(&mut self, lv: Lit) {
+    //     let mut cand = self.cnf[lv].clone();
+    //     cand.extend(self.occur.get(lv));
+    // }
+
     pub fn subsume_simplify(&mut self) {
-        // for cls in self.cnf.iter() {
-        //     let cls1: Vec<_> = cls.iter().map(|c| c.deref().clone()).collect();
-        //     let cls2 = lemmas_subsume_simplify(cls1);
-        //     if cls.len() > cls2.len() {}
+        // for v in Var(1)..=self.max_var {
+        //     let lv = v.lit();
+        //     let (mut pos, mut neg) = (self.cnf[lv].clone(), self.cnf[!lv].clone());
+        //     pos.extend(self.occur.get(lv));
+        //     neg.extend(self.occur.get(!lv));
         // }
     }
 
