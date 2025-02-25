@@ -61,6 +61,7 @@ impl DagCnf {
 
     #[inline]
     pub fn add_rel(&mut self, n: Var, rel: &[LitVec]) {
+        self.new_var_to(n);
         if n.is_constant() {
             return;
         }
@@ -70,6 +71,11 @@ impl DagCnf {
         assert!(dep.iter().all(|d| *d < n));
         self.dep[n].extend(dep.iter());
         self.cnf[n].extend_from_slice(rel);
+    }
+
+    #[inline]
+    pub fn has_rel(&self, n: Var) -> bool {
+        n <= self.max_var && !self.cnf[n].is_empty()
     }
 
     pub fn fanins(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
