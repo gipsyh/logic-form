@@ -1,5 +1,5 @@
-use crate::{Lit, LitMap, Var};
-use giputils::{grc::Grc, gvec::Gvec, hash::GHashSet, heap::BinaryHeapCmp};
+use crate::{Lemma, Lit, LitMap, Var};
+use giputils::{allocator::Gallocator, grc::Grc, gvec::Gvec, heap::BinaryHeapCmp};
 
 #[derive(Debug, Clone, Default)]
 pub struct Occur {
@@ -21,9 +21,9 @@ impl Occur {
     }
 
     #[inline]
-    fn clean(&mut self, removed: &GHashSet<u32>) {
+    fn clean(&mut self, cdb: &Gallocator<Lemma>) {
         if self.dirty {
-            self.occur.retain(|&i| !removed.contains(&i));
+            self.occur.retain(|&i| !cdb.is_removed(i));
             self.dirty = false;
         }
     }
@@ -51,24 +51,24 @@ impl Occur {
 
 pub struct Occurs {
     occurs: LitMap<Occur>,
-    removed: Grc<GHashSet<u32>>,
+    cdb: Grc<Gallocator<Lemma>>,
 }
 
 impl Occurs {
     #[inline]
     #[allow(unused)]
-    pub fn new(removed: Grc<GHashSet<u32>>) -> Self {
+    pub fn new(cdb: Grc<Gallocator<Lemma>>) -> Self {
         Self {
             occurs: LitMap::new(),
-            removed,
+            cdb,
         }
     }
 
     #[inline]
-    pub fn new_with(var: Var, removed: Grc<GHashSet<u32>>) -> Self {
+    pub fn new_with(var: Var, cdb: Grc<Gallocator<Lemma>>) -> Self {
         Self {
             occurs: LitMap::new_with(var),
-            removed,
+            cdb,
         }
     }
 
@@ -95,7 +95,7 @@ impl Occurs {
 
     #[inline]
     pub fn get(&mut self, lit: Lit) -> &[u32] {
-        self.occurs[lit].clean(&self.removed);
+        self.occurs[lit].clean(&self.cdb);
         &self.occurs[lit].occur
     }
 }

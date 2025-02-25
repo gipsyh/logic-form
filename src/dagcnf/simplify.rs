@@ -3,7 +3,7 @@ use crate::{lemmas_subsume_simplify, Lemma, LitMap, LitVec, LitVvec, Var};
 use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
 
 pub struct DagCnfSimplify {
-    cdb: Gallocator<Lemma>,
+    cdb: Grc<Gallocator<Lemma>>,
     max_var: Var,
     cnf: LitMap<Vec<u32>>,
     occur: Grc<Occurs>,
@@ -13,10 +13,9 @@ pub struct DagCnfSimplify {
 
 impl DagCnfSimplify {
     pub fn new(dagcnf: &DagCnf) -> Self {
-        let cdb = Gallocator::new();
-        let removed = cdb.get_removed();
+        let cdb = Grc::new(Gallocator::new());
         let max_var = dagcnf.max_var;
-        let occur = Grc::new(Occurs::new_with(max_var, removed));
+        let occur = Grc::new(Occurs::new_with(max_var, cdb.clone()));
         let cnf = LitMap::new_with(max_var);
         let qbve = BinaryHeap::new(occur.clone());
         let mut res = Self {
@@ -164,18 +163,61 @@ impl DagCnfSimplify {
         }
     }
 
-    // fn lit_subsume_simplify(&mut self, lv: Lit) {
-    //     let mut cand = self.cnf[lv].clone();
-    //     cand.extend(self.occur.get(lv));
-    // }
+    fn cls_subsume_check(&mut self, ci: u32) {
+        if self.cdb.is_removed(ci) {
+            return;
+        }
+        let best_lit = *self.cdb[ci]
+            .iter()
+            .min_by_key(|&&l| self.occur.num_occur(l) + self.cnf[l].len())
+            .unwrap();
+        let mut occur = self.occur.get(best_lit).to_vec();
+        occur.extend(self.cnf[best_lit].iter());
+        for cj in occur {
+            if self.cdb.is_removed(cj) {
+                continue;
+            }
+            if cj == ci {
+                continue;
+            }
+            let (res, diff) = self.cdb[ci].subsume_execpt_one(&self.cdb[cj]);
+            if res {
+                self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
+                self.cdb.dealloc(cj);
+                continue;
+            } else if let Some(diff) = diff {
+            }
+        }
+        //     let (res, diff) = self.cdb[ci].subsume_execpt_one(&self.cdb[cj]);
+        //     if res {
+        //         self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
+        //         self.cdb.dealloc(cj);
+        //         continue;
+        //     } else if let Some(diff) = diff {
+        //         // if lemmas[i].len() == lemmas[j].len() {
+        //         //     update = true;
+        //         //     let mut cube = lemmas[i].cube().clone();
+        //         //     cube.retain(|l| *l != diff);
+        //         //     lemmas[i] = Lemma::new(cube);
+        //         //     lemmas[j] = Default::default();
+        //         // } else {
+        //         //     let mut cube = lemmas[j].cube().clone();
+        //         //     cube.retain(|l| *l != !diff);
+        //         //     lemmas[j] = Lemma::new(cube);
+        //         // }
+        //     }
+        // }
+    }
 
     pub fn subsume_simplify(&mut self) {
-        // for v in Var(1)..=self.max_var {
-        //     let lv = v.lit();
-        //     let (mut pos, mut neg) = (self.cnf[lv].clone(), self.cnf[!lv].clone());
-        //     pos.extend(self.occur.get(lv));
-        //     neg.extend(self.occur.get(!lv));
-        // }
+        for v in Var::CONST..=self.max_var {
+            for cls in self.cnf[v.lit()].clone() {
+                self.cls_subsume_check(cls);
+            }
+            for cls in self.cnf[!v.lit()].clone() {
+                self.cls_subsume_check(cls);
+            }
+        }
     }
 
     pub fn simplify(&mut self) -> DagCnf {
@@ -187,6 +229,7 @@ impl DagCnfSimplify {
             let cnf: Vec<_> = self.cnf[v.lit()]
                 .iter()
                 .chain(self.cnf[!v.lit()].iter())
+                .filter(|&&cls| !self.cdb.is_removed(cls))
                 .map(|&cls| self.cdb[cls].cube().clone())
                 .collect();
             dagcnf.add_rel(v, &cnf);
