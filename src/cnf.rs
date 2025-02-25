@@ -75,7 +75,7 @@ impl Cnf {
         domain_map
     }
 
-    pub unsafe fn set_cls(&mut self, cls: Vec<LitVec>) {
+    pub fn set_cls(&mut self, cls: Vec<LitVec>) {
         self.cls = cls;
     }
 }
