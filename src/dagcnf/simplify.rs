@@ -29,7 +29,10 @@ impl DagCnfSimplify {
         };
         for v in Var::CONST..=max_var {
             for mut cls in dagcnf.cnf[v].clone() {
-                cls.sort();
+                cls.cls_simp();
+                if cls.is_empty() {
+                    continue;
+                }
                 assert!(cls.last().var().eq(&v));
                 res.add_rel(cls);
             }

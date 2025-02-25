@@ -38,6 +38,18 @@ impl LitVec {
     }
 
     #[inline]
+    pub fn cls_simp(&mut self) {
+        self.sort();
+        self.dedup();
+        for i in 1..self.len() {
+            if self[i] == !self[i - 1] {
+                self.clear();
+                return;
+            }
+        }
+    }
+
+    #[inline]
     pub fn subsume(&self, o: &[Lit]) -> bool {
         if self.len() > o.len() {
             return false;
@@ -76,8 +88,8 @@ impl LitVec {
 
     #[inline]
     pub fn ordered_subsume(&self, cube: &LitVec) -> bool {
-        debug_assert!(self.is_sorted_by_key(|l| l.var()));
-        debug_assert!(cube.is_sorted_by_key(|l| l.var()));
+        debug_assert!(self.is_sorted());
+        debug_assert!(cube.is_sorted());
         if self.len() > cube.len() {
             return false;
         }
@@ -95,8 +107,8 @@ impl LitVec {
 
     #[inline]
     pub fn ordered_subsume_execpt_one(&self, cube: &LitVec) -> (bool, Option<Lit>) {
-        debug_assert!(self.is_sorted_by_key(|l| l.var()));
-        debug_assert!(cube.is_sorted_by_key(|l| l.var()));
+        debug_assert!(self.is_sorted());
+        debug_assert!(cube.is_sorted());
         let mut diff = None;
         if self.len() > cube.len() {
             return (false, None);
@@ -135,8 +147,8 @@ impl LitVec {
 
     #[inline]
     pub fn ordered_intersection(&self, cube: &LitVec) -> LitVec {
-        debug_assert!(self.is_sorted_by_key(|l| l.var()));
-        debug_assert!(cube.is_sorted_by_key(|l| l.var()));
+        debug_assert!(self.is_sorted());
+        debug_assert!(cube.is_sorted());
         let mut res = LitVec::new();
         let mut i = 0;
         for l in self.iter() {
@@ -181,8 +193,8 @@ impl LitVec {
 
     #[inline]
     pub fn ordered_resolvent(&self, other: &LitVec, v: Var) -> Option<LitVec> {
-        debug_assert!(self.is_sorted_by_key(|l| l.var()));
-        debug_assert!(other.is_sorted_by_key(|l| l.var()));
+        debug_assert!(self.is_sorted());
+        debug_assert!(other.is_sorted());
         let (x, y) = if self.len() < other.len() {
             (self, other)
         } else {
@@ -244,8 +256,8 @@ impl PartialOrd for LitVec {
 impl Ord for LitVec {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        debug_assert!(self.is_sorted_by_key(|x| x.var()));
-        debug_assert!(other.is_sorted_by_key(|x| x.var()));
+        debug_assert!(self.is_sorted());
+        debug_assert!(other.is_sorted());
         let min_index = self.len().min(other.len());
         for i in 0..min_index {
             match self[i].0.cmp(&other[i].0) {
