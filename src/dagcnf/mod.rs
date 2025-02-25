@@ -7,7 +7,7 @@ use giputils::hash::{GHashMap, GHashSet};
 use simplify::DagCnfSimplify;
 use std::{
     iter::{once, Flatten, Zip},
-    ops::Range,
+    ops::RangeInclusive,
     slice,
 };
 
@@ -55,8 +55,8 @@ impl DagCnf {
     }
 
     #[inline]
-    pub fn iter(&self) -> Zip<Range<Var>, std::slice::Iter<'_, LitVvec>> {
-        (Var::CONST..self.max_var).zip(self.cnf.iter())
+    pub fn iter(&self) -> Zip<RangeInclusive<Var>, std::slice::Iter<'_, LitVvec>> {
+        (Var::CONST..=self.max_var).zip(self.cnf.iter())
     }
 
     #[inline]
@@ -72,7 +72,7 @@ impl DagCnf {
         self.cnf[n].extend_from_slice(rel);
     }
 
-    pub fn get_coi(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
+    pub fn fanins(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
         let mut marked = GHashSet::new();
         let mut queue = vec![];
         for v in var {
@@ -85,6 +85,16 @@ impl DagCnf {
                     marked.insert(*d);
                     queue.push(*d);
                 }
+            }
+        }
+        marked
+    }
+
+    pub fn fanouts(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
+        let mut marked = GHashSet::from_iter(var);
+        for v in Var::CONST..=self.max_var {
+            if self.dep[v].iter().any(|d| marked.contains(d)) {
+                marked.insert(v);
             }
         }
         marked
