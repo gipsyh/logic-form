@@ -61,9 +61,13 @@ impl DagCnf {
 
     #[inline]
     pub fn add_rel(&mut self, n: Var, rel: &[LitVec]) {
+        if n.is_constant() {
+            return;
+        }
         assert!(self.dep[n].is_empty() && self.cnf[n].is_empty());
         let mut dep = GHashSet::from_iter(rel.iter().flatten().map(|l| l.var()));
         dep.remove(&n);
+        assert!(dep.iter().all(|d| *d < n));
         self.dep[n].extend(dep.iter());
         self.cnf[n].extend_from_slice(rel);
     }

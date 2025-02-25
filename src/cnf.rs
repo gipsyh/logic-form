@@ -74,6 +74,10 @@ impl Cnf {
         self.max_var = Var::new(domain.len() - 1);
         domain_map
     }
+
+    pub unsafe fn set_cls(&mut self, cls: Vec<LitVec>) {
+        self.cls = cls;
+    }
 }
 
 impl Deref for Cnf {
