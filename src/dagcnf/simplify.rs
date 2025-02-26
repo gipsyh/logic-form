@@ -186,27 +186,21 @@ impl DagCnfSimplify {
                 self.cdb.dealloc(cj);
                 continue;
             } else if let Some(diff) = diff {
+                if self.cdb[ci].len() == self.cdb[cj].len() {
+                    let mut cube = self.cdb[ci].cube().clone();
+                    cube.retain(|l| *l != diff);
+                    assert!(cube.last() == self.cdb[ci].last());
+                    self.cdb[ci] = Lemma::new(cube);
+                    self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
+                    self.cdb.dealloc(cj);
+                } else {
+                    let mut cube = self.cdb[cj].cube().clone();
+                    assert!(cube.last() == self.cdb[cj].last());
+                    cube.retain(|l| *l != !diff);
+                    self.cdb[cj] = Lemma::new(cube);
+                }
             }
         }
-        //     let (res, diff) = self.cdb[ci].subsume_execpt_one(&self.cdb[cj]);
-        //     if res {
-        //         self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
-        //         self.cdb.dealloc(cj);
-        //         continue;
-        //     } else if let Some(diff) = diff {
-        //         // if lemmas[i].len() == lemmas[j].len() {
-        //         //     update = true;
-        //         //     let mut cube = lemmas[i].cube().clone();
-        //         //     cube.retain(|l| *l != diff);
-        //         //     lemmas[i] = Lemma::new(cube);
-        //         //     lemmas[j] = Default::default();
-        //         // } else {
-        //         //     let mut cube = lemmas[j].cube().clone();
-        //         //     cube.retain(|l| *l != !diff);
-        //         //     lemmas[j] = Lemma::new(cube);
-        //         // }
-        //     }
-        // }
     }
 
     pub fn subsume_simplify(&mut self) {
@@ -232,6 +226,7 @@ impl DagCnfSimplify {
                 .filter(|&&cls| !self.cdb.is_removed(cls))
                 .map(|&cls| self.cdb[cls].cube().clone())
                 .collect();
+            assert!(cnf.iter().all(|cls| cls.last().var().eq(&v)));
             dagcnf.add_rel(v, &cnf);
         }
         dagcnf
