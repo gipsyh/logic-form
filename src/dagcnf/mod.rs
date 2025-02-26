@@ -7,7 +7,7 @@ use giputils::hash::{GHashMap, GHashSet};
 use simplify::DagCnfSimplify;
 use std::{
     iter::{Flatten, Zip, once},
-    ops::RangeInclusive,
+    ops::{Index, RangeInclusive},
     slice,
 };
 
@@ -67,11 +67,12 @@ impl DagCnf {
             return;
         }
         assert!(self.dep[n].is_empty() && self.cnf[n].is_empty());
-        let mut dep = GHashSet::from_iter(rel.iter().flatten().map(|l| l.var()));
-        dep.remove(&n);
-        assert!(dep.iter().all(|d| *d < n));
-        self.dep[n].extend(dep.iter());
-        self.cnf[n].extend_from_slice(rel);
+        for mut r in rel.iter().cloned() {
+            r.sort();
+            assert!(r.last().var() == n);
+            self.cnf[n].push(r);
+        }
+        self.dep[n] = deps(n, &self.cnf[n]);
     }
 
     #[inline]
@@ -117,6 +118,13 @@ impl DagCnf {
             }
         }
         root
+    }
+
+    pub fn pol_filter(&mut self, pol: impl IntoIterator<Item = Lit>) {
+        for p in pol {
+            self.cnf[p.var()].retain(|cls| cls.last() != !p);
+            self.dep[p.var()] = deps(p.var(), &self.cnf[p.var()]);
+        }
     }
 
     pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
@@ -170,4 +178,25 @@ impl Default for DagCnf {
             dep: VarMap::new_with(max_var),
         }
     }
+}
+
+impl Index<Var> for DagCnf {
+    type Output = [LitVec];
+
+    #[inline]
+    fn index(&self, index: Var) -> &Self::Output {
+        &self.cnf[index]
+    }
+}
+
+#[inline]
+fn deps(n: Var, cnf: &[LitVec]) -> Vec<Var> {
+    let mut dep = GHashSet::new();
+    for cls in cnf.iter() {
+        for l in cls.iter() {
+            dep.insert(l.var());
+        }
+    }
+    dep.remove(&n);
+    dep.into_iter().collect()
 }
