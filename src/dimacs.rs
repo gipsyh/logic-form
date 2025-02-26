@@ -1,6 +1,6 @@
 use crate::{Lit, LitVec, Var};
 use std::{
-    fs::{read_to_string, File},
+    fs::{File, read_to_string},
     io::Write,
     path::Path,
 };

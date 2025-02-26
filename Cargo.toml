@@ -1,19 +1,16 @@
 [package]
 name = "logic-form"
-version = "0.3.1"
+version = "0.3.2"
 license = "MIT"
 description = "Rust library for representing Cube, Clause, CNF and DNF"
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/gipsyh/logic-form"
 authors = ["Yuheng Su <gipsyh.icu@gmail.com>"]
-keywords = ["logic", "cube", "cnf"]
+keywords = ["logic"]
 rust-version = "1.85"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-no_bound_check = []
-
 [dependencies]
-giputils = { path = "../giputils", version = "0.2.9" }
+giputils = { path = "../giputils", version = "0.3.0" }
 ahash = "0.8.11"

@@ -207,11 +207,7 @@ impl Lit {
 
     #[inline]
     pub fn not_if(&self, c: bool) -> Self {
-        if c {
-            !*self
-        } else {
-            *self
-        }
+        if c { !*self } else { *self }
     }
 
     #[inline]

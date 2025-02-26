@@ -27,11 +27,7 @@ impl Lbool {
     }
 
     pub fn not_if(self, x: bool) -> Self {
-        if x {
-            !self
-        } else {
-            self
-        }
+        if x { !self } else { self }
     }
 }
 

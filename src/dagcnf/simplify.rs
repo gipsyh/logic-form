@@ -1,5 +1,5 @@
-use super::{occur::Occurs, DagCnf};
-use crate::{lemmas_subsume_simplify, Lemma, LitMap, LitVec, LitVvec, Var};
+use super::{DagCnf, occur::Occurs};
+use crate::{Lemma, LitMap, LitVec, LitVvec, Var, lemmas_subsume_simplify};
 use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
 
 pub struct DagCnfSimplify {

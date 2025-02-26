@@ -6,7 +6,7 @@ use crate::{Lit, LitVec, LitVvec, Var, VarMap};
 use giputils::hash::{GHashMap, GHashSet};
 use simplify::DagCnfSimplify;
 use std::{
-    iter::{once, Flatten, Zip},
+    iter::{Flatten, Zip, once},
     ops::RangeInclusive,
     slice,
 };
