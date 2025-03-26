@@ -76,6 +76,12 @@ impl DagCnf {
     }
 
     #[inline]
+    pub fn del_rel(&mut self, n: Var) {
+        self.dep[n].clear();
+        self.cnf[n].clear();
+    }
+
+    #[inline]
     pub fn has_rel(&self, n: Var) -> bool {
         n <= self.max_var && !self.cnf[n].is_empty()
     }
