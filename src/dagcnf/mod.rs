@@ -133,7 +133,7 @@ impl DagCnf {
         }
     }
 
-    pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
+    pub fn rearrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.clause() {
             for l in cls.iter() {

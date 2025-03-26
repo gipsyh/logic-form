@@ -52,7 +52,7 @@ impl Cnf {
         &self.cls
     }
 
-    pub fn arrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
+    pub fn rearrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.cls.iter() {
             for l in cls.iter() {
