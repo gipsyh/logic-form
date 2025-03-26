@@ -18,6 +18,7 @@ pub use litvvec::*;
 pub use utils::*;
 
 use std::{
+    cmp,
     fmt::{self, Debug, Display},
     hash::Hash,
     iter::Step,
@@ -141,6 +142,34 @@ impl Step for Var {
     #[inline]
     fn backward_checked(start: Self, count: usize) -> Option<Self> {
         u32::backward_checked(start.0, count).map(Self)
+    }
+}
+
+impl PartialEq<u32> for Var {
+    #[inline]
+    fn eq(&self, other: &u32) -> bool {
+        (self.0 as u32).eq(other)
+    }
+}
+
+impl PartialOrd<u32> for Var {
+    #[inline]
+    fn partial_cmp(&self, other: &u32) -> Option<cmp::Ordering> {
+        (self.0 as u32).partial_cmp(other)
+    }
+}
+
+impl PartialEq<usize> for Var {
+    #[inline]
+    fn eq(&self, other: &usize) -> bool {
+        (self.0 as usize).eq(other)
+    }
+}
+
+impl PartialOrd<usize> for Var {
+    #[inline]
+    fn partial_cmp(&self, other: &usize) -> Option<cmp::Ordering> {
+        (self.0 as usize).partial_cmp(other)
     }
 }
 
