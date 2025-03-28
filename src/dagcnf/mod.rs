@@ -86,6 +86,32 @@ impl DagCnf {
         n <= self.max_var && !self.cnf[n].is_empty()
     }
 
+    pub fn new_and(&mut self, ands: impl Iterator<Item = Lit>) -> Lit {
+        let ands: Vec<_> = ands.collect();
+        if ands.is_empty() {
+            Lit::constant(true)
+        } else if ands.len() == 1 {
+            ands[0]
+        } else {
+            let n = self.new_var().lit();
+            self.add_rel(n.var(), &LitVvec::cnf_and(n, &ands));
+            n
+        }
+    }
+
+    pub fn new_or(&mut self, ors: impl Iterator<Item = Lit>) -> Lit {
+        let ors: Vec<_> = ors.collect();
+        if ors.is_empty() {
+            Lit::constant(false)
+        } else if ors.len() == 1 {
+            ors[0]
+        } else {
+            let n = self.new_var().lit();
+            self.add_rel(n.var(), &LitVvec::cnf_or(n, &ors));
+            n
+        }
+    }
+
     pub fn fanins(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
         let mut marked = GHashSet::new();
         let mut queue = vec![];

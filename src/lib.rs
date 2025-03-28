@@ -164,14 +164,14 @@ impl Step for Var {
 impl PartialEq<u32> for Var {
     #[inline]
     fn eq(&self, other: &u32) -> bool {
-        (self.0 as u32).eq(other)
+        self.0.eq(other)
     }
 }
 
 impl PartialOrd<u32> for Var {
     #[inline]
     fn partial_cmp(&self, other: &u32) -> Option<cmp::Ordering> {
-        (self.0 as u32).partial_cmp(other)
+        self.0.partial_cmp(other)
     }
 }
 
