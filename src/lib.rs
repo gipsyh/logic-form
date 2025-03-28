@@ -47,6 +47,22 @@ impl Var {
     }
 }
 
+impl Add<Var> for Var {
+    type Output = Var;
+
+    #[inline]
+    fn add(self, rhs: Var) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl AddAssign<Var> for Var {
+    #[inline]
+    fn add_assign(&mut self, rhs: Var) {
+        self.0 += rhs.0;
+    }
+}
+
 impl Add<u32> for Var {
     type Output = Var;
 
