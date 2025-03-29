@@ -1,5 +1,6 @@
 #![feature(step_trait)]
 
+mod assign;
 mod cnf;
 mod dagcnf;
 pub mod dimacs;
@@ -9,6 +10,7 @@ mod litvec;
 mod litvvec;
 mod utils;
 
+pub use assign::*;
 pub use cnf::*;
 pub use dagcnf::*;
 pub use lbool::*;
