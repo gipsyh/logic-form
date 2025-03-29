@@ -86,8 +86,9 @@ impl DagCnf {
         n <= self.max_var && !self.cnf[n].is_empty()
     }
 
-    pub fn new_and(&mut self, ands: impl Iterator<Item = Lit>) -> Lit {
-        let ands: Vec<_> = ands.collect();
+    #[inline]
+    pub fn new_and(&mut self, ands: impl IntoIterator<Item = Lit>) -> Lit {
+        let ands: Vec<_> = ands.into_iter().collect();
         if ands.is_empty() {
             Lit::constant(true)
         } else if ands.len() == 1 {
@@ -99,8 +100,9 @@ impl DagCnf {
         }
     }
 
-    pub fn new_or(&mut self, ors: impl Iterator<Item = Lit>) -> Lit {
-        let ors: Vec<_> = ors.collect();
+    #[inline]
+    pub fn new_or(&mut self, ors: impl IntoIterator<Item = Lit>) -> Lit {
+        let ors: Vec<_> = ors.into_iter().collect();
         if ors.is_empty() {
             Lit::constant(false)
         } else if ors.len() == 1 {
@@ -110,6 +112,27 @@ impl DagCnf {
             self.add_rel(n.var(), &LitVvec::cnf_or(n, &ors));
             n
         }
+    }
+
+    #[inline]
+    pub fn new_xor(&mut self, x: Lit, y: Lit) -> Lit {
+        let n = self.new_var().lit();
+        self.add_rel(n.var(), &LitVvec::cnf_xor(n, x, y));
+        n
+    }
+
+    #[inline]
+    pub fn new_imply(&mut self, x: Lit, y: Lit) -> Lit {
+        let n = self.new_var().lit();
+        self.add_rel(n.var(), &LitVvec::cnf_or(n, &[!x, y]));
+        n
+    }
+
+    #[inline]
+    pub fn new_ite(&mut self, c: Lit, t: Lit, e: Lit) -> Lit {
+        let n = self.new_var().lit();
+        self.add_rel(n.var(), &LitVvec::cnf_ite(n, c, t, e));
+        n
     }
 
     pub fn fanins(&self, var: impl Iterator<Item = Var>) -> GHashSet<Var> {
