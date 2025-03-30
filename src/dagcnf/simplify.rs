@@ -1,6 +1,7 @@
 use super::{DagCnf, occur::Occurs};
 use crate::{Lemma, LitMap, LitVec, LitVvec, Var, lemmas_subsume_simplify};
 use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
+use std::iter::once;
 
 pub struct DagCnfSimplify {
     cdb: Grc<Gallocator<Lemma>>,
@@ -240,4 +241,14 @@ fn clause_subsume_simplify(lemmas: LitVvec) -> LitVvec {
         .into_iter()
         .map(|l| LitVec::from(l.cube().as_slice()))
         .collect()
+}
+
+impl DagCnf {
+    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Self {
+        let mut simp = DagCnfSimplify::new(self);
+        for v in frozen.chain(once(Var::CONST)) {
+            simp.froze(v);
+        }
+        simp.simplify()
+    }
 }

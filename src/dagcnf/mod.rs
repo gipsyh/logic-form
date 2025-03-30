@@ -4,7 +4,6 @@ pub mod simulate;
 
 use crate::{Lit, LitVec, LitVvec, Var, VarMap};
 use giputils::hash::{GHashMap, GHashSet};
-use simplify::DagCnfSimplify;
 use std::{
     iter::{Flatten, Zip, once},
     ops::{Index, RangeInclusive},
@@ -198,7 +197,7 @@ impl DagCnf {
             res.new_var_to(v);
             domain_map.insert(*d, v);
         }
-        let map_lit = |l: &Lit| Lit::new(domain_map[&l.var()], l.polarity());
+        let map_lit = |l: &Lit| l.map_var(|v| domain_map[&v]);
         for (d, v) in domain_map.iter() {
             if d.is_constant() {
                 continue;
@@ -213,12 +212,14 @@ impl DagCnf {
         domain_map
     }
 
-    pub fn simplify(&self, frozen: impl Iterator<Item = Var>) -> Self {
-        let mut simp = DagCnfSimplify::new(self);
-        for v in frozen.chain(once(Var::CONST)) {
-            simp.froze(v);
+    pub fn map(&self, map: impl Fn(Var) -> Var) -> Self {
+        assert!(map(Var::CONST) == Var::CONST);
+        let mut res = DagCnf::new();
+        for (v, rel) in self.iter() {
+            let new_cls: Vec<_> = rel.iter().map(|cls| cls.map(|l| l.map_var(&map))).collect();
+            res.add_rel(map(v), &new_cls);
         }
-        simp.simplify()
+        res
     }
 }
 

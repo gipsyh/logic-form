@@ -222,6 +222,15 @@ impl LitVec {
         new.extend(y.iter().filter(|l| l.var() != v).copied());
         Some(new)
     }
+
+    #[inline]
+    pub fn map(&self, f: impl Fn(Lit) -> Lit) -> LitVec {
+        let mut new = LitVec::new_with(self.len());
+        for l in self.iter() {
+            new.push(f(*l));
+        }
+        new
+    }
 }
 
 impl Default for LitVec {
