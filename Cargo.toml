@@ -1,6 +1,6 @@
 [package]
 name = "logic-form"
-version = "0.3.2"
+version = "0.3.3"
 license = "MIT"
 description = "Rust library for representing Cube, Clause, CNF and DNF"
 edition = "2024"
