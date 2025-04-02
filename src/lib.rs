@@ -20,7 +20,6 @@ pub use litvvec::*;
 pub use utils::*;
 
 use std::{
-    cmp,
     fmt::{self, Debug, Display},
     hash::Hash,
     iter::Step,
@@ -65,68 +64,10 @@ impl AddAssign<Var> for Var {
     }
 }
 
-impl Add<u32> for Var {
-    type Output = Var;
-
-    #[inline]
-    fn add(self, rhs: u32) -> Self::Output {
-        Self(self.0 + rhs)
-    }
-}
-
-impl AddAssign<u32> for Var {
-    #[inline]
-    fn add_assign(&mut self, rhs: u32) {
-        self.0 += rhs;
-    }
-}
-
 impl From<Lit> for Var {
     #[inline]
     fn from(value: Lit) -> Self {
         value.var()
-    }
-}
-
-impl From<u32> for Var {
-    #[inline]
-    fn from(value: u32) -> Self {
-        Self(value)
-    }
-}
-
-impl From<i32> for Var {
-    #[inline]
-    fn from(value: i32) -> Self {
-        Self(value as u32)
-    }
-}
-
-impl From<usize> for Var {
-    #[inline]
-    fn from(value: usize) -> Self {
-        Self(value as u32)
-    }
-}
-
-impl From<Var> for u32 {
-    #[inline]
-    fn from(value: Var) -> Self {
-        value.0
-    }
-}
-
-impl From<Var> for i32 {
-    #[inline]
-    fn from(value: Var) -> Self {
-        value.0 as i32
-    }
-}
-
-impl From<Var> for usize {
-    #[inline]
-    fn from(value: Var) -> Self {
-        value.0 as usize
     }
 }
 
@@ -163,33 +104,58 @@ impl Step for Var {
     }
 }
 
-impl PartialEq<u32> for Var {
-    #[inline]
-    fn eq(&self, other: &u32) -> bool {
-        self.0.eq(other)
-    }
+macro_rules! impl_var_traits {
+    ($T:ty) => {
+        impl PartialEq<$T> for Var {
+            #[inline]
+            fn eq(&self, other: &$T) -> bool {
+                self.0.eq(&(*other as u32))
+            }
+        }
+
+        impl PartialOrd<$T> for Var {
+            #[inline]
+            fn partial_cmp(&self, other: &$T) -> Option<std::cmp::Ordering> {
+                self.0.partial_cmp(&(*other as u32))
+            }
+        }
+
+        impl From<Var> for $T {
+            #[inline]
+            fn from(value: Var) -> Self {
+                value.0 as $T
+            }
+        }
+
+        impl From<$T> for Var {
+            #[inline]
+            fn from(value: $T) -> Self {
+                Self(value as u32)
+            }
+        }
+
+        impl Add<$T> for Var {
+            type Output = Var;
+
+            #[inline]
+            fn add(self, rhs: $T) -> Self::Output {
+                Self(self.0 + rhs as u32)
+            }
+        }
+
+        impl AddAssign<$T> for Var {
+            #[inline]
+            fn add_assign(&mut self, rhs: $T) {
+                self.0 += rhs as u32;
+            }
+        }
+    };
 }
 
-impl PartialOrd<u32> for Var {
-    #[inline]
-    fn partial_cmp(&self, other: &u32) -> Option<cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl PartialEq<usize> for Var {
-    #[inline]
-    fn eq(&self, other: &usize) -> bool {
-        (self.0 as usize).eq(other)
-    }
-}
-
-impl PartialOrd<usize> for Var {
-    #[inline]
-    fn partial_cmp(&self, other: &usize) -> Option<cmp::Ordering> {
-        (self.0 as usize).partial_cmp(other)
-    }
-}
+impl_var_traits!(u32);
+impl_var_traits!(i32);
+impl_var_traits!(usize);
+impl_var_traits!(isize);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Lit(u32);

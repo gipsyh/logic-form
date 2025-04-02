@@ -82,7 +82,8 @@ impl DagCnf {
 
     #[inline]
     pub fn has_rel(&self, n: Var) -> bool {
-        n <= self.max_var && !self.cnf[n].is_empty()
+        assert!(n <= self.max_var);
+        n != Var::CONST && !self.cnf[n].is_empty()
     }
 
     #[inline]
