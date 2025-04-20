@@ -121,6 +121,13 @@ impl DagCnf {
     }
 
     #[inline]
+    pub fn new_xnor(&mut self, x: Lit, y: Lit) -> Lit {
+        let n = self.new_var().lit();
+        self.add_rel(n.var(), &LitVvec::cnf_xnor(n, x, y));
+        n
+    }
+
+    #[inline]
     pub fn new_imply(&mut self, x: Lit, y: Lit) -> Lit {
         let n = self.new_var().lit();
         self.add_rel(n.var(), &LitVvec::cnf_or(n, &[!x, y]));
