@@ -14,3 +14,5 @@ rust-version = "1.85"
 [dependencies]
 giputils = { path = "../giputils", version = "0.3.0" }
 ahash = "0.8.11"
+lazy_static = "1.5.0"
+inventory = "0.3.20"
