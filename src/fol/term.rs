@@ -31,6 +31,11 @@ impl Term {
     }
 
     #[inline]
+    pub fn is_const(&self) -> bool {
+        matches!(self.deref(), TermType::Const(_))
+    }
+
+    #[inline]
     pub fn try_op_term(&self) -> Option<&OpTerm> {
         if let TermType::Op(op) = self.deref() {
             Some(op)
