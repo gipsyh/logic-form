@@ -13,12 +13,10 @@ fn not_simplify(tm: &mut TermManager, terms: &[Term]) -> TermResult {
     let x = &terms[0];
     if let Some(op) = x.try_op_term() {
         if op.op == Not {
-            dbg!("not1");
             return TermResult::Some(op[0].clone());
         }
     }
     if let Some(xc) = x.try_bv_const() {
-        dbg!("not2");
         return TermResult::Some(tm.bv_const(!xc));
     }
     TermResult::None
@@ -37,20 +35,16 @@ fn and_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
     let simp = |a: &Term, b: &Term| {
         if let Some(ac) = a.try_bv_const() {
             if ac.is_ones() {
-                dbg!("and1");
                 return TermResult::Some(b.clone());
             }
             if ac.is_zero() {
-                dbg!("and2");
                 return TermResult::Some(a.clone());
             }
         }
         if a == b {
-            dbg!("and3");
             return TermResult::Some(a.clone());
         }
         if a == &!b {
-            dbg!("and4");
             return TermResult::Some(a.mk_bv_const_zero());
         }
         if let Some(aop) = a.try_op_term() {
@@ -58,28 +52,23 @@ fn and_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
                 if let Some(bop) = b.try_op_term() {
                     if bop.op == And {
                         if aop[0] == bop[0] {
-                            dbg!("and5");
                             return TermResult::Some(&aop[0] & &aop[1] & &bop[1]);
                         }
                         if aop[0] == bop[1] {
-                            dbg!("and5");
                             return TermResult::Some(&aop[0] & &aop[1] & &bop[0]);
                         }
                     }
                 }
                 if b == &aop[0] {
-                    dbg!("and6");
                     return TermResult::Some(b & &aop[1]);
                 }
                 if b == &aop[1] {
-                    dbg!("and6");
                     return TermResult::Some(b & &aop[0]);
                 }
             }
             if aop.op == Not {
                 if let Some(bop) = b.try_op_term() {
                     if bop.op == Not {
-                        dbg!("and7");
                         return TermResult::Some(!(&aop[0] | &bop[0]));
                     }
                 }
@@ -88,11 +77,9 @@ fn and_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
                 if let Some(bop) = b.try_op_term() {
                     if bop.op == Or {
                         if aop[0] == bop[0] {
-                            dbg!("and8");
                             return TermResult::Some(&aop[0] | (&aop[1] & &bop[1]));
                         }
                         if aop[0] == bop[1] {
-                            dbg!("and8");
                             return TermResult::Some(&aop[0] | (&aop[1] & &bop[0]));
                         }
                     }
@@ -135,29 +122,24 @@ fn or_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
         if let Some(aop) = a.try_op_term() {
             if aop.op == Or {
                 if b == &aop[0] {
-                    dbg!("or5");
                     return TermResult::Some(b | &aop[1]);
                 }
                 if b == &aop[1] {
-                    dbg!("or6");
                     return TermResult::Some(b | &aop[0]);
                 }
             }
             if aop.op == Not {
                 if let Some(bop) = b.try_op_term() {
                     if bop.op == Not {
-                        dbg!("or7");
                         return TermResult::Some(!(&aop[0] & &bop[0]));
                     }
                 }
             }
             if aop.op == Ite {
                 if b == &aop[0] {
-                    dbg!("or8");
                     return TermResult::Some(b | &aop[2]);
                 }
                 if b == &!&aop[0] {
-                    dbg!("or8");
                     return TermResult::Some(b | &aop[1]);
                 }
             }
@@ -165,11 +147,9 @@ fn or_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
                 if let Some(bop) = b.try_op_term() {
                     if bop.op == And {
                         if aop[0] == bop[0] {
-                            dbg!("or9");
                             return TermResult::Some(&aop[0] & (&aop[1] | &bop[1]));
                         }
                         if aop[0] == bop[1] {
-                            dbg!("or9");
                             return TermResult::Some(&aop[0] & (&aop[1] | &bop[0]));
                         }
                     }
@@ -197,20 +177,16 @@ fn xor_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
     let simp = |a: &Term, b: &Term| {
         if let Some(ac) = a.try_bv_const() {
             if ac.is_ones() {
-                dbg!("xor1");
                 return TermResult::Some(!b.clone());
             }
             if ac.is_zero() {
-                dbg!("xor2");
                 return TermResult::Some(b.clone());
             }
         }
         if a == b {
-            dbg!("xor3");
             return TermResult::Some(a.mk_bv_const_zero());
         }
         if a == &!b {
-            dbg!("xor4");
             return TermResult::Some(a.mk_bv_const_ones());
         }
         TermResult::None
@@ -234,16 +210,13 @@ fn eq_simplify(tm: &mut TermManager, terms: &[Term]) -> TermResult {
     let mut simp = |a: &Term, b: &Term| {
         if a.is_bool() {
             if let TermResult::Some(s) = xor_simplify(tm, terms) {
-                dbg!("eq1");
                 return TermResult::Some(!s);
             }
         }
         if a == b {
-            dbg!("eq2");
             return TermResult::Some(tm.bool_const(true));
         }
         if a == &!b {
-            dbg!("eq3");
             return TermResult::Some(tm.bool_const(false));
         }
         TermResult::None
@@ -267,21 +240,17 @@ fn ult_simplify(tm: &mut TermManager, terms: &[Term]) -> TermResult {
     let y = &terms[1];
     if let Some(xc) = x.try_bv_const() {
         if xc.is_zero() {
-            dbg!("ult0");
             return TermResult::Some(!x.op1(Eq, y));
         }
         if xc.is_ones() {
-            dbg!("ult1");
             return TermResult::Some(tm.bool_const(false));
         }
     }
     if let Some(yc) = y.try_bv_const() {
         if yc.is_zero() {
-            dbg!("ult2");
             return TermResult::Some(tm.bool_const(false));
         }
         if yc.is_ones() {
-            dbg!("ult3");
             return TermResult::Some(!x.op1(Eq, y));
         }
     }
@@ -430,7 +399,6 @@ fn ite_sort(terms: &[Term]) -> Sort {
 fn ite_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
     let (c, t, e) = (&terms[0], &terms[1], &terms[2]);
     if let Some(cc) = c.try_bv_const() {
-        dbg!("ite1");
         if cc.is_ones() {
             return TermResult::Some(t.clone());
         } else {
@@ -438,43 +406,31 @@ fn ite_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
         }
     }
     if t == e {
-        dbg!("ite2");
         return TermResult::Some(t.clone());
     }
     if let Some(cop) = c.try_op_term() {
         if cop.op == Not {
-            dbg!("ite2.5");
             return TermResult::Some(cop[0].ite(e, t));
         }
     }
     if t.is_bool() {
         if let Some(ec) = e.try_bv_const() {
             if ec.is_zero() {
-                dbg!("ite3");
                 return TermResult::Some(c & t);
             }
             if ec.is_ones() {
-                dbg!("ite4");
                 return TermResult::Some(!c | t);
             }
         }
         if let Some(tc) = t.try_bv_const() {
             if tc.is_zero() {
-                dbg!("ite5");
                 return TermResult::Some(!c & e);
             }
             if tc.is_ones() {
-                dbg!("ite6");
                 return TermResult::Some(c | e);
             }
         }
     }
-    // let tr = t.replace(c, &tm.bool_const(true));
-    // let er = e.replace(c, &tm.bool_const(false));
-    // if tr != t || er != e {
-    //     dbg!("ite7");
-    //     return TermResult::Some(c.ite(&tr, &er));
-    // }
     TermResult::None
 }
 fn ite_bitblast(_tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
