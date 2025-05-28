@@ -7,7 +7,7 @@ use std::{
     slice,
 };
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct LitVec {
     lits: Vec<Lit>,
 }
@@ -364,6 +364,14 @@ impl AsRef<[Lit]> for LitVec {
 }
 
 impl Display for LitVec {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.lits.fmt(f)
+    }
+}
+
+impl Debug for LitVec {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.lits.fmt(f)
     }
