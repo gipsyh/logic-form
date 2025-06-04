@@ -9,13 +9,13 @@ use std::{
 };
 
 #[derive(Debug, Default, Clone)]
-pub struct Lemma {
+pub struct LitOrdVec {
     cube: LitVec,
     sign: u128,
     hash: u64,
 }
 
-impl Deref for Lemma {
+impl Deref for LitOrdVec {
     type Target = LitVec;
 
     #[inline]
@@ -24,14 +24,14 @@ impl Deref for Lemma {
     }
 }
 
-impl DerefMut for Lemma {
+impl DerefMut for LitOrdVec {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.cube
     }
 }
 
-impl PartialEq for Lemma {
+impl PartialEq for LitOrdVec {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         if self.hash != other.hash || self.sign != other.sign || self.len() != other.len() {
@@ -46,23 +46,23 @@ impl PartialEq for Lemma {
     }
 }
 
-impl Eq for Lemma {}
+impl Eq for LitOrdVec {}
 
-impl PartialOrd for Lemma {
+impl PartialOrd for LitOrdVec {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for Lemma {
+impl Ord for LitOrdVec {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.cube.cmp(&other.cube)
     }
 }
 
-impl Lemma {
+impl LitOrdVec {
     #[inline]
     pub fn new(mut cube: LitVec) -> Self {
         cube.sort();
@@ -90,7 +90,7 @@ impl Lemma {
     }
 
     #[inline]
-    pub fn subsume(&self, other: &Lemma) -> bool {
+    pub fn subsume(&self, other: &LitOrdVec) -> bool {
         if self.cube.len() > other.cube.len() {
             return false;
         }
@@ -101,7 +101,7 @@ impl Lemma {
     }
 
     #[inline]
-    pub fn subsume_execpt_one(&self, other: &Lemma) -> (bool, Option<Lit>) {
+    pub fn subsume_execpt_one(&self, other: &LitOrdVec) -> (bool, Option<Lit>) {
         if self.cube.len() > other.cube.len() {
             return (false, None);
         }
@@ -113,7 +113,7 @@ impl Lemma {
     }
 
     #[inline]
-    pub fn subsume_set(&self, other: &Lemma, other_lits: &LitSet) -> bool {
+    pub fn subsume_set(&self, other: &LitOrdVec, other_lits: &LitSet) -> bool {
         if self.cube.len() > other.cube.len() {
             return false;
         }
@@ -129,21 +129,21 @@ impl Lemma {
     }
 }
 
-impl Hash for Lemma {
+impl Hash for LitOrdVec {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
     }
 }
 
-impl Display for Lemma {
+impl Display for LitOrdVec {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.cube, f)
     }
 }
 
-pub fn lemmas_subsume_simplify(mut lemmas: Vec<Lemma>) -> Vec<Lemma> {
+pub fn lemmas_subsume_simplify(mut lemmas: Vec<LitOrdVec>) -> Vec<LitOrdVec> {
     lemmas.sort_by_key(|l| l.len());
     let mut i = 0;
     while i < lemmas.len() {
@@ -165,12 +165,12 @@ pub fn lemmas_subsume_simplify(mut lemmas: Vec<Lemma>) -> Vec<Lemma> {
                     update = true;
                     let mut cube = lemmas[i].cube().clone();
                     cube.retain(|l| *l != diff);
-                    lemmas[i] = Lemma::new(cube);
+                    lemmas[i] = LitOrdVec::new(cube);
                     lemmas[j] = Default::default();
                 } else {
                     let mut cube = lemmas[j].cube().clone();
                     cube.retain(|l| *l != !diff);
-                    lemmas[j] = Lemma::new(cube);
+                    lemmas[j] = LitOrdVec::new(cube);
                 }
             }
         }
@@ -182,7 +182,7 @@ pub fn lemmas_subsume_simplify(mut lemmas: Vec<Lemma>) -> Vec<Lemma> {
     lemmas
 }
 
-impl IntoIterator for Lemma {
+impl IntoIterator for LitOrdVec {
     type Item = Lit;
     type IntoIter = std::vec::IntoIter<Lit>;
 
@@ -192,7 +192,7 @@ impl IntoIterator for Lemma {
     }
 }
 
-impl<'a> IntoIterator for &'a Lemma {
+impl<'a> IntoIterator for &'a LitOrdVec {
     type Item = &'a Lit;
     type IntoIter = slice::Iter<'a, Lit>;
 

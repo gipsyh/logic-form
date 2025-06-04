@@ -1,10 +1,10 @@
 use super::{DagCnf, occur::Occurs};
-use crate::{Lemma, LitMap, LitVec, LitVvec, Var, lemmas_subsume_simplify};
+use crate::{LitMap, LitOrdVec, LitVec, LitVvec, Var, lemmas_subsume_simplify};
 use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
 use std::iter::once;
 
 pub struct DagCnfSimplify {
-    cdb: Grc<Gallocator<Lemma>>,
+    cdb: Grc<Gallocator<LitOrdVec>>,
     max_var: Var,
     cnf: LitMap<Vec<u32>>,
     occur: Grc<Occurs>,
@@ -48,7 +48,7 @@ impl DagCnfSimplify {
     }
 
     fn add_rel(&mut self, rel: LitVec) {
-        let rel = Lemma::new(rel);
+        let rel = LitOrdVec::new(rel);
         let n = rel.last();
         let relid = self.cdb.alloc(rel);
         self.cnf[n].push(relid);
@@ -191,14 +191,14 @@ impl DagCnfSimplify {
                     let mut cube = self.cdb[ci].cube().clone();
                     cube.retain(|l| *l != diff);
                     assert!(cube.last() == self.cdb[ci].last());
-                    self.cdb[ci] = Lemma::new(cube);
+                    self.cdb[ci] = LitOrdVec::new(cube);
                     self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
                     self.cdb.dealloc(cj);
                 } else {
                     let mut cube = self.cdb[cj].cube().clone();
                     assert!(cube.last() == self.cdb[cj].last());
                     cube.retain(|l| *l != !diff);
-                    self.cdb[cj] = Lemma::new(cube);
+                    self.cdb[cj] = LitOrdVec::new(cube);
                 }
             }
         }
@@ -235,7 +235,7 @@ impl DagCnfSimplify {
 }
 
 fn clause_subsume_simplify(lemmas: LitVvec) -> LitVvec {
-    let lemmas: Vec<Lemma> = lemmas.into_iter().map(Lemma::new).collect();
+    let lemmas: Vec<LitOrdVec> = lemmas.into_iter().map(LitOrdVec::new).collect();
     let lemmas = lemmas_subsume_simplify(lemmas);
     lemmas
         .into_iter()

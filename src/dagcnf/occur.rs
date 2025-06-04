@@ -1,4 +1,4 @@
-use crate::{Lemma, Lit, LitMap, Var};
+use crate::{Lit, LitMap, LitOrdVec, Var};
 use giputils::{allocator::Gallocator, grc::Grc, gvec::Gvec, heap::BinaryHeapCmp};
 
 #[derive(Debug, Clone, Default)]
@@ -21,7 +21,7 @@ impl Occur {
     }
 
     #[inline]
-    fn clean(&mut self, cdb: &Gallocator<Lemma>) {
+    fn clean(&mut self, cdb: &Gallocator<LitOrdVec>) {
         if self.dirty {
             self.occur.retain(|&i| !cdb.is_removed(i));
             self.dirty = false;
@@ -51,13 +51,13 @@ impl Occur {
 
 pub struct Occurs {
     occurs: LitMap<Occur>,
-    cdb: Grc<Gallocator<Lemma>>,
+    cdb: Grc<Gallocator<LitOrdVec>>,
 }
 
 impl Occurs {
     #[inline]
     #[allow(unused)]
-    pub fn new(cdb: Grc<Gallocator<Lemma>>) -> Self {
+    pub fn new(cdb: Grc<Gallocator<LitOrdVec>>) -> Self {
         Self {
             occurs: LitMap::new(),
             cdb,
@@ -65,7 +65,7 @@ impl Occurs {
     }
 
     #[inline]
-    pub fn new_with(var: Var, cdb: Grc<Gallocator<Lemma>>) -> Self {
+    pub fn new_with(var: Var, cdb: Grc<Gallocator<LitOrdVec>>) -> Self {
         Self {
             occurs: LitMap::new_with(var),
             cdb,
