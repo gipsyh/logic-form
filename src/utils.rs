@@ -1,4 +1,5 @@
 use crate::{Lit, Var};
+use giputils::hash::GHashMap;
 use std::{
     ops::{Deref, DerefMut, Index, IndexMut},
     ptr, slice,
@@ -395,5 +396,67 @@ impl Iterator for VarRefIter {
         }
         self.p += 1;
         Some(varref.set[self.p - 1])
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct VarVMap {
+    rst: GHashMap<Var, Var>,
+}
+
+impl Deref for VarVMap {
+    type Target = GHashMap<Var, Var>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.rst
+    }
+}
+
+impl DerefMut for VarVMap {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.rst
+    }
+}
+
+impl VarVMap {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn new_self_map(v: Var) -> Self {
+        let mut res = VarVMap::new();
+        for v in Var::CONST..=v {
+            res.insert(v, v);
+        }
+        res
+    }
+
+    #[inline]
+    pub fn lit_map(&self, lit: Lit) -> Option<Lit> {
+        self.rst
+            .get(&lit.var())
+            .map(|v| v.lit().not_if(!lit.polarity()))
+    }
+
+    pub fn product(&self, other: &Self) -> Self {
+        let mut res = VarVMap::new();
+        for (x, y) in self.iter() {
+            if let Some(z) = other.get(y) {
+                res.insert(*x, *z);
+            }
+        }
+        res
+    }
+
+    pub fn inverse(&self) -> Self {
+        let mut res = VarVMap::new();
+        for (x, y) in self.iter() {
+            res.insert(*y, *x);
+        }
+        res
     }
 }

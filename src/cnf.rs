@@ -1,5 +1,5 @@
-use crate::{DagCnf, Lit, LitVec, Var};
-use giputils::hash::{GHashMap, GHashSet};
+use crate::{DagCnf, Lit, LitVec, Var, VarVMap};
+use giputils::hash::GHashSet;
 use std::{
     iter::once,
     ops::{Deref, DerefMut},
@@ -52,7 +52,7 @@ impl Cnf {
         &self.cls
     }
 
-    pub fn rearrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
+    pub fn rearrange(&mut self, additional: impl Iterator<Item = Var>) -> VarVMap {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.cls.iter() {
             for l in cls.iter() {
@@ -61,7 +61,7 @@ impl Cnf {
         }
         let mut domain = Vec::from_iter(domain);
         domain.sort();
-        let mut domain_map = GHashMap::new();
+        let mut domain_map = VarVMap::new();
         for (i, d) in domain.iter().enumerate() {
             domain_map.insert(*d, Var::new(i));
         }

@@ -2,8 +2,8 @@ mod occur;
 pub mod simplify;
 pub mod simulate;
 
-use crate::{Lit, LitVec, LitVvec, Var, VarMap};
-use giputils::hash::{GHashMap, GHashSet};
+use crate::{Lit, LitVec, LitVvec, Var, VarMap, VarVMap};
+use giputils::hash::GHashSet;
 use std::{
     iter::{Flatten, Zip, once},
     ops::{Index, RangeInclusive},
@@ -188,7 +188,7 @@ impl DagCnf {
         }
     }
 
-    pub fn rearrange(&mut self, additional: impl Iterator<Item = Var>) -> GHashMap<Var, Var> {
+    pub fn rearrange(&mut self, additional: impl Iterator<Item = Var>) -> VarVMap {
         let mut domain = GHashSet::from_iter(additional.chain(once(Var::CONST)));
         for cls in self.clause() {
             for l in cls.iter() {
@@ -197,7 +197,7 @@ impl DagCnf {
         }
         let mut domain = Vec::from_iter(domain);
         domain.sort();
-        let mut domain_map = GHashMap::new();
+        let mut domain_map = VarVMap::new();
         let mut res = DagCnf::new();
         for (i, d) in domain.iter().enumerate() {
             let v = Var::new(i);
