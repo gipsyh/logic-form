@@ -44,9 +44,20 @@ impl DagCnf {
     }
 
     #[inline]
+    pub fn num_var(&self) -> usize {
+        let n: usize = self.max_var().into();
+        n + 1
+    }
+
+    #[inline]
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.clause().count()
+    }
+
+    #[inline]
+    pub fn var_iter(&self) -> RangeInclusive<Var> {
+        Var::CONST..=self.max_var
     }
 
     #[inline]
@@ -83,6 +94,11 @@ impl DagCnf {
     #[inline]
     pub fn has_rel(&self, n: Var) -> bool {
         !n.is_constant() && !self.cnf[n].is_empty()
+    }
+
+    #[inline]
+    pub fn is_leaf(&self, n: Var) -> bool {
+        self.cnf[n].is_empty()
     }
 
     #[inline]

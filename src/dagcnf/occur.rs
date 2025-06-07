@@ -102,7 +102,7 @@ impl Occurs {
 
 impl BinaryHeapCmp<Var> for Occurs {
     #[inline]
-    fn lge(&self, s: Var, o: Var) -> bool {
+    fn gte(&self, s: Var, o: Var) -> bool {
         self.num_occur(s.lit()) + self.num_occur(!s.lit())
             < self.num_occur(o.lit()) + self.num_occur(!o.lit())
     }

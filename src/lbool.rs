@@ -26,6 +26,7 @@ impl Lbool {
         self.0 & 2 != 0
     }
 
+    #[inline]
     pub fn not_if(self, x: bool) -> Self {
         if x { !self } else { self }
     }
@@ -50,6 +51,7 @@ impl From<Lbool> for Option<bool> {
 }
 
 impl Default for Lbool {
+    #[inline]
     fn default() -> Self {
         Self::NONE
     }
@@ -78,6 +80,7 @@ impl Not for Lbool {
 impl BitAnd for Lbool {
     type Output = Lbool;
 
+    #[inline]
     fn bitand(self, rhs: Self) -> Self::Output {
         if self.is_none() {
             if rhs.is_false() {
@@ -100,6 +103,7 @@ impl BitAnd for Lbool {
 impl BitOr for Lbool {
     type Output = Lbool;
 
+    #[inline]
     fn bitor(self, rhs: Self) -> Self::Output {
         if self.is_none() {
             if rhs.is_true() {

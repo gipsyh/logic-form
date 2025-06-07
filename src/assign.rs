@@ -1,11 +1,16 @@
 use crate::{Lbool, Lit, Var, VarMap};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct VarAssign {
     v: VarMap<Lbool>,
 }
 
 impl VarAssign {
+    #[inline]
+    pub fn new() -> Self {
+        VarAssign { v: VarMap::new() }
+    }
+
     #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.v.reserve(var)

@@ -232,6 +232,11 @@ impl Lit {
     pub fn map_var(&self, map: impl Fn(Var) -> Var) -> Self {
         Self::new(map(self.var()), self.polarity())
     }
+
+    #[inline]
+    pub fn filter_map_var(&self, map: impl Fn(Var) -> Option<Var>) -> Option<Self> {
+        map(self.var()).map(|v| Self::new(v, self.polarity()))
+    }
 }
 
 impl Not for Lit {

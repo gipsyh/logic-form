@@ -224,6 +224,26 @@ impl LitVec {
     }
 
     #[inline]
+    pub fn map_var(&self, f: impl Fn(Var) -> Var) -> LitVec {
+        let mut new = LitVec::new_with(self.len());
+        for l in self.iter() {
+            new.push(l.map_var(&f));
+        }
+        new
+    }
+
+    #[inline]
+    pub fn filter_map_var(&self, f: impl Fn(Var) -> Option<Var>) -> LitVec {
+        let mut new = LitVec::new_with(self.len());
+        for l in self.iter() {
+            if let Some(l) = l.filter_map_var(&f) {
+                new.push(l);
+            }
+        }
+        new
+    }
+
+    #[inline]
     pub fn map(&self, f: impl Fn(Lit) -> Lit) -> LitVec {
         let mut new = LitVec::new_with(self.len());
         for l in self.iter() {
