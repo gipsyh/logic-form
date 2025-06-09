@@ -188,10 +188,14 @@ impl DagCnfSimplify {
                 continue;
             } else if let Some(diff) = diff {
                 if self.cdb[ci].len() == self.cdb[cj].len() {
+                    assert!(diff.var() != self.cdb[ci].last().var());
                     let mut cube = self.cdb[ci].cube().clone();
                     cube.retain(|l| *l != diff);
                     assert!(cube.last() == self.cdb[ci].last());
                     self.cdb[ci] = LitOrdVec::new(cube);
+                    self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
+                    self.cdb.dealloc(cj);
+                } else if diff.var() == self.cdb[cj].last().var() {
                     self.cnf[self.cdb[cj].last()].retain(|&c| c != cj);
                     self.cdb.dealloc(cj);
                 } else {

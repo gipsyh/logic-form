@@ -1,4 +1,5 @@
 mod occur;
+mod replace;
 pub mod simplify;
 pub mod simulate;
 
@@ -14,7 +15,7 @@ use std::{
 pub struct DagCnf {
     max_var: Var,
     cnf: VarMap<LitVvec>,
-    pub dep: VarMap<Vec<Var>>,
+    dep: VarMap<Vec<Var>>,
 }
 
 impl DagCnf {
@@ -63,6 +64,11 @@ impl DagCnf {
     #[inline]
     pub fn clause(&self) -> Flatten<slice::Iter<'_, LitVvec>> {
         self.cnf.iter().flatten()
+    }
+
+    #[inline]
+    pub fn dep(&self, n: Var) -> &[Var] {
+        &self.dep[n]
     }
 
     #[inline]

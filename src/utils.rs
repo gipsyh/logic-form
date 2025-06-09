@@ -1,6 +1,7 @@
 use crate::{Lit, Var};
 use giputils::hash::GHashMap;
 use std::{
+    collections::hash_map,
     ops::{Deref, DerefMut, Index, IndexMut},
     ptr, slice,
 };
@@ -401,7 +402,7 @@ impl Iterator for VarRefIter {
 
 #[derive(Clone, Debug, Default)]
 pub struct VarVMap {
-    rst: GHashMap<Var, Var>,
+    map: GHashMap<Var, Var>,
 }
 
 impl Deref for VarVMap {
@@ -409,14 +410,14 @@ impl Deref for VarVMap {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.rst
+        &self.map
     }
 }
 
 impl DerefMut for VarVMap {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.rst
+        &mut self.map
     }
 }
 
@@ -437,7 +438,7 @@ impl VarVMap {
 
     #[inline]
     pub fn lit_map(&self, lit: Lit) -> Option<Lit> {
-        self.rst
+        self.map
             .get(&lit.var())
             .map(|v| v.lit().not_if(!lit.polarity()))
     }
@@ -458,5 +459,62 @@ impl VarVMap {
             res.insert(*y, *x);
         }
         res
+    }
+
+    pub fn map_fn(&self) -> impl Fn(Var) -> Var + '_ {
+        move |v| self[&v]
+    }
+
+    pub fn try_map_fn(&self) -> impl Fn(Var) -> Option<Var> + '_ {
+        move |v| self.get(&v).copied()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct VarLMap {
+    map: GHashMap<Var, Lit>,
+}
+
+impl VarLMap {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn contains_key(&self, var: Var) -> bool {
+        self.map.contains_key(&var)
+    }
+
+    #[inline]
+    pub fn insert(&mut self, f: Var, t: Lit) {
+        self.map.insert(f, t);
+    }
+
+    #[inline]
+    pub fn insert_lit(&mut self, f: Lit, t: Lit) {
+        self.map.insert(f.var(), t.not_if(!f.polarity()));
+    }
+
+    #[inline]
+    pub fn map(&self, var: Var) -> Option<Lit> {
+        self.map.get(&var).copied()
+    }
+
+    #[inline]
+    pub fn map_lit(&self, lit: Lit) -> Option<Lit> {
+        self.map.get(&lit.var()).map(|v| v.not_if(!lit.polarity()))
+    }
+
+    pub fn iter(&self) -> hash_map::Iter<'_, Var, Lit> {
+        self.map.iter()
+    }
+
+    pub fn map_fn(&self) -> impl Fn(Lit) -> Lit {
+        move |v| self.map_lit(v).unwrap()
+    }
+
+    pub fn try_map_fn(&self) -> impl Fn(Lit) -> Option<Lit> {
+        move |v| self.map_lit(v)
     }
 }
