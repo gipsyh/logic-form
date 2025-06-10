@@ -2,6 +2,7 @@ use super::DagCnf;
 use crate::Lit;
 use crate::{Var, VarMap};
 use giputils::bitvec::BitVec;
+use giputils::hash::GHashSet;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::ops::Index;
@@ -41,9 +42,17 @@ impl DagCnfSimulation {
         let mut rng = StdRng::seed_from_u64(0);
         let mut sim = VarMap::new_with(dc.max_var());
         sim[Var::CONST] = BitVec::new_with(num_word * BitVec::WORD_SIZE, false);
+        let mut leafs = GHashSet::new();
         for v in Var(1)..=dc.max_var() {
             if dc.is_leaf(v) {
-                sim[v] = BitVec::new_rand(num_word, &mut rng);
+                loop {
+                    let x = BitVec::new_rand(num_word, &mut rng);
+                    if !leafs.contains(&x) {
+                        leafs.insert(x.clone());
+                        sim[v] = x;
+                        break;
+                    }
+                }
             } else {
                 sim[v] = BitVec::new_with(num_word * BitVec::WORD_SIZE, false);
             }
