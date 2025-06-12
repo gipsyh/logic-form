@@ -12,6 +12,13 @@ impl VarAssign {
     }
 
     #[inline]
+    pub fn new_with(var: Var) -> Self {
+        let mut v = VarAssign::new();
+        v.reserve(var);
+        v
+    }
+
+    #[inline]
     pub fn reserve(&mut self, var: Var) {
         self.v.reserve(var)
     }
