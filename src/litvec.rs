@@ -1,4 +1,4 @@
-use crate::{Lit, Var};
+use crate::{Lit, Var, VarAssign};
 use giputils::hash::GHashSet;
 use std::{
     cmp::Ordering,
@@ -38,15 +38,25 @@ impl LitVec {
     }
 
     #[inline]
-    pub fn cls_simp(&mut self) {
-        self.sort();
-        self.dedup();
-        for i in 1..self.len() {
-            if self[i] == !self[i - 1] {
-                self.clear();
-                return;
+    pub fn ordered_simp(&self, v: &VarAssign) -> Option<Self> {
+        let mut res = LitVec::new();
+        for i in 0..self.len() {
+            let lv = v.v(self[i]);
+            if lv.is_true() {
+                return None;
+            } else if lv.is_false() {
+                continue;
             }
+            if let Some(&last) = (*res).last() {
+                if self[i] == last {
+                    continue;
+                } else if self[i] == !last {
+                    return None;
+                }
+            }
+            res.push(self[i]);
         }
+        Some(res)
     }
 
     #[inline]

@@ -7,7 +7,7 @@ impl DagCnf {
         }
 
         for v in Var::CONST..=self.max_var {
-            if map.contains_key(v) {
+            if map.contains_key(&v) {
                 self.cnf[v].clear();
                 self.dep[v].clear();
             }

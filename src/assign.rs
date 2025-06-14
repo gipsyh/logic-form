@@ -1,6 +1,6 @@
 use crate::{Lbool, Lit, Var, VarMap};
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct VarAssign {
     v: VarMap<Lbool>,
 }
@@ -8,7 +8,7 @@ pub struct VarAssign {
 impl VarAssign {
     #[inline]
     pub fn new() -> Self {
-        VarAssign { v: VarMap::new() }
+        Self::default()
     }
 
     #[inline]
@@ -36,5 +36,16 @@ impl VarAssign {
     #[inline]
     pub fn set_none(&mut self, var: Var) {
         self.v[var] = Lbool::NONE
+    }
+}
+
+impl Default for VarAssign {
+    #[inline]
+    fn default() -> Self {
+        let v = VarMap::new();
+        let mut res = Self { v };
+        res.reserve(Var::CONST);
+        res.set(Lit::constant(true));
+        res
     }
 }

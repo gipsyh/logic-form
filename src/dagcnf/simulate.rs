@@ -7,22 +7,6 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::ops::Index;
 
-impl DagCnf {
-    // pub fn sim_var(&mut self, n: Var, value: &mut VarAssign) {
-    //     value.set_none(n);
-    //     'm: for rel in self.cnf[n].iter() {
-    //         for l in rel.iter() {
-    //             if l.var() != n && value.v(*l) != Lbool::FALSE {
-    //                 continue 'm;
-    //             }
-    //         }
-    //         debug_assert!(rel.last().var() == n);
-    //         value.set(rel.last());
-    //         return;
-    //     }
-    // }
-}
-
 #[derive(Clone, Debug)]
 pub struct DagCnfSimulation {
     sim: VarMap<BitVec>,
@@ -94,12 +78,20 @@ impl DagCnfSimulation {
         }
     }
 
-    fn simulate(&mut self, dc: &DagCnf) {
+    pub fn simulate(&mut self, dc: &DagCnf) {
         for v in Var(1)..=dc.max_var() {
             if dc.is_leaf(v) {
                 continue;
             }
             self.simulate_var(v, dc);
+        }
+    }
+
+    #[inline]
+    pub fn add(&mut self, val: BitVec) {
+        assert!(self.sim.len() == val.len());
+        for v in 0..val.len() {
+            self.sim[Var(v as u32)].push(val.get(v));
         }
     }
 }

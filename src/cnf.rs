@@ -65,7 +65,7 @@ impl Cnf {
         for (i, d) in domain.iter().enumerate() {
             domain_map.insert(*d, Var::new(i));
         }
-        let map_lit = |l: &Lit| l.map_var(|v| domain_map[&v]);
+        let map_lit = |l: &Lit| l.map_var(|v| domain_map[v]);
         for cls in self.cls.iter_mut() {
             for l in cls.iter_mut() {
                 *l = map_lit(l);

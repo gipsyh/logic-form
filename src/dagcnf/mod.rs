@@ -62,6 +62,11 @@ impl DagCnf {
     }
 
     #[inline]
+    pub fn num_clause(&self) -> usize {
+        self.cnf.iter().map(|v| v.len()).sum()
+    }
+
+    #[inline]
     pub fn clause(&self) -> Flatten<slice::Iter<'_, LitVvec>> {
         self.cnf.iter().flatten()
     }
@@ -80,6 +85,10 @@ impl DagCnf {
     pub fn add_rel(&mut self, n: Var, rel: &[LitVec]) {
         self.new_var_to(n);
         if n.is_constant() {
+            if !rel.eq(&[LitVec::from(Lit::constant(true))]) {
+                dbg!(rel);
+                panic!();
+            }
             return;
         }
         assert!(self.dep[n].is_empty() && self.cnf[n].is_empty());
@@ -99,7 +108,7 @@ impl DagCnf {
 
     #[inline]
     pub fn has_rel(&self, n: Var) -> bool {
-        !n.is_constant() && !self.cnf[n].is_empty()
+        n.is_constant() || !self.cnf[n].is_empty()
     }
 
     #[inline]
@@ -226,7 +235,7 @@ impl DagCnf {
             res.new_var_to(v);
             domain_map.insert(*d, v);
         }
-        let map_lit = |l: &Lit| l.map_var(|v| domain_map[&v]);
+        let map_lit = |l: &Lit| l.map_var(|v| domain_map[v]);
         for (d, v) in domain_map.iter() {
             if d.is_constant() {
                 continue;

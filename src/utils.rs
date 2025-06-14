@@ -1,7 +1,6 @@
 use crate::{Lit, Var};
 use giputils::hash::GHashMap;
 use std::{
-    collections::hash_map,
     ops::{Deref, DerefMut, Index, IndexMut},
     ptr, slice,
 };
@@ -421,6 +420,15 @@ impl DerefMut for VarVMap {
     }
 }
 
+impl Index<Var> for VarVMap {
+    type Output = Var;
+
+    #[inline]
+    fn index(&self, index: Var) -> &Self::Output {
+        &self.map[&index]
+    }
+}
+
 impl VarVMap {
     #[inline]
     pub fn new() -> Self {
@@ -462,7 +470,7 @@ impl VarVMap {
     }
 
     pub fn map_fn(&self) -> impl Fn(Var) -> Var + '_ {
-        move |v| self[&v]
+        move |v| self[v]
     }
 
     pub fn try_map_fn(&self) -> impl Fn(Var) -> Option<Var> + '_ {
@@ -475,20 +483,26 @@ pub struct VarLMap {
     map: GHashMap<Var, Lit>,
 }
 
+impl Deref for VarLMap {
+    type Target = GHashMap<Var, Lit>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.map
+    }
+}
+
+impl DerefMut for VarLMap {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.map
+    }
+}
+
 impl VarLMap {
     #[inline]
     pub fn new() -> Self {
         Self::default()
-    }
-
-    #[inline]
-    pub fn contains_key(&self, var: Var) -> bool {
-        self.map.contains_key(&var)
-    }
-
-    #[inline]
-    pub fn insert(&mut self, f: Var, t: Lit) {
-        self.map.insert(f, t);
     }
 
     #[inline]
@@ -504,10 +518,6 @@ impl VarLMap {
     #[inline]
     pub fn map_lit(&self, lit: Lit) -> Option<Lit> {
         self.map.get(&lit.var()).map(|v| v.not_if(!lit.polarity()))
-    }
-
-    pub fn iter(&self) -> hash_map::Iter<'_, Var, Lit> {
-        self.map.iter()
     }
 
     pub fn map_fn(&self) -> impl Fn(Lit) -> Lit {

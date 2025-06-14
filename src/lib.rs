@@ -23,10 +23,10 @@ use std::{
     fmt::{self, Debug, Display},
     hash::Hash,
     iter::Step,
-    ops::{Add, AddAssign, Deref, Not},
+    ops::{Add, AddAssign, Deref, Not, Sub},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Var(pub u32);
 
 impl Var {
@@ -87,6 +87,13 @@ impl Display for Var {
     }
 }
 
+impl Debug for Var {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl Step for Var {
     #[inline]
     fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
@@ -140,6 +147,15 @@ macro_rules! impl_var_traits {
             #[inline]
             fn add(self, rhs: $T) -> Self::Output {
                 Self(self.0 + rhs as u32)
+            }
+        }
+
+        impl Sub<$T> for Var {
+            type Output = Var;
+
+            #[inline]
+            fn sub(self, rhs: $T) -> Self::Output {
+                Self(self.0 - rhs as u32)
             }
         }
 

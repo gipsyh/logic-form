@@ -1,46 +1,71 @@
 use super::{DagCnf, occur::Occurs};
-use crate::{LitMap, LitOrdVec, LitVec, LitVvec, Var, lemmas_subsume_simplify};
+use crate::{LitMap, LitOrdVec, LitVec, LitVvec, Var, VarAssign, lemmas_subsume_simplify};
 use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
-use std::iter::once;
+use log::info;
+use std::{iter::once, time::Instant};
 
 pub struct DagCnfSimplify {
     cdb: Grc<Gallocator<LitOrdVec>>,
     max_var: Var,
     cnf: LitMap<Vec<u32>>,
-    occur: Grc<Occurs>,
+    occur: Option<(Grc<Occurs>, BinaryHeap<Var, Occurs>)>,
     frozen: GHashSet<Var>,
-    qbve: BinaryHeap<Var, Occurs>,
+    value: VarAssign,
+    num_ocls: usize,
 }
 
 impl DagCnfSimplify {
     pub fn new(dagcnf: &DagCnf) -> Self {
+        let num_ocls = dagcnf.num_clause();
         let cdb = Grc::new(Gallocator::new());
         let max_var = dagcnf.max_var;
-        let occur = Grc::new(Occurs::new_with(max_var, cdb.clone()));
         let cnf = LitMap::new_with(max_var);
-        let qbve = BinaryHeap::new(occur.clone());
+        let value = VarAssign::new_with(max_var);
         let mut res = Self {
             cdb,
-            occur,
+            occur: None,
             max_var,
             cnf,
             frozen: Default::default(),
-            qbve,
+            value,
+            num_ocls,
         };
         for v in Var::CONST..=max_var {
             for mut cls in dagcnf.cnf[v].clone() {
-                cls.cls_simp();
-                if cls.is_empty() {
-                    continue;
-                }
+                cls.sort();
+                cls.dedup();
                 assert!(cls.last().var().eq(&v));
                 res.add_rel(cls);
             }
         }
-        for v in Var::CONST..=max_var {
-            res.qbve.push(v);
-        }
         res
+    }
+
+    fn enable_occur(&mut self) {
+        if self.occur.is_none() {
+            let mut occur = Grc::new(Occurs::new_with(self.max_var, self.cdb.clone()));
+            let mut qbve = BinaryHeap::new(occur.clone());
+            for v in Var::CONST..=self.max_var {
+                for &cls in self.cnf[v.lit()].iter().chain(self.cnf[!v.lit()].iter()) {
+                    for &l in self.cdb[cls].iter() {
+                        let lv = l.var();
+                        if lv != v {
+                            occur.add(l, cls);
+                        }
+                    }
+                }
+            }
+            for v in Var::CONST..=self.max_var {
+                qbve.push(v);
+            }
+            self.occur = Some((occur, qbve));
+        }
+    }
+
+    fn disable_occur(&mut self) {
+        if self.occur.is_some() {
+            self.occur = None;
+        }
     }
 
     pub fn froze(&mut self, v: Var) {
@@ -48,20 +73,52 @@ impl DagCnfSimplify {
     }
 
     fn add_rel(&mut self, rel: LitVec) {
+        let Some(rel) = rel.ordered_simp(&self.value) else {
+            return;
+        };
         let rel = LitOrdVec::new(rel);
         let n = rel.last();
+        if rel.len() == 1 {
+            assert!(!self.value.v(n).is_true());
+            self.value.set(n);
+        }
         let relid = self.cdb.alloc(rel);
         self.cnf[n].push(relid);
-        for &l in self.cdb[relid].iter() {
-            let lv = l.var();
-            if lv != n.var() {
-                self.occur.add(l, relid);
-                self.qbve.down(lv);
+        if let Some((occur, qbve)) = &mut self.occur {
+            for &l in self.cdb[relid].iter() {
+                let lv = l.var();
+                if lv != n.var() {
+                    occur.add(l, relid);
+                    qbve.down(lv);
+                }
             }
         }
     }
 
-    fn remove_rel(&mut self, rels: Vec<u32>) {
+    #[allow(unused)]
+    fn remove_rel(&mut self, rel: u32) {
+        let o = self.cdb[rel].last();
+        let mut i = 0;
+        while i < self.cnf[o].len() {
+            if self.cnf[o][i] == rel {
+                let cls = self.cnf[o].swap_remove(i);
+                if let Some((occur, qbve)) = &mut self.occur {
+                    for &l in self.cdb[cls].iter() {
+                        let lv = l.var();
+                        if lv != o.var() {
+                            occur.del(l, cls);
+                            qbve.up(lv);
+                        }
+                    }
+                }
+                self.cdb.dealloc(cls);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
+    fn remove_rels(&mut self, rels: Vec<u32>) {
         let relset = GHashSet::from_iter(rels.iter().copied());
         let outs = GHashSet::from_iter(rels.iter().map(|&cls| self.cdb[cls].last()));
         for o in outs {
@@ -69,10 +126,13 @@ impl DagCnfSimplify {
             while i < self.cnf[o].len() {
                 if relset.contains(&self.cnf[o][i]) {
                     let cls = self.cnf[o].swap_remove(i);
-                    for &l in self.cdb[cls].iter() {
-                        let lv = l.var();
-                        if lv != o.var() {
-                            self.occur.del(l, cls);
+                    if let Some((occur, qbve)) = &mut self.occur {
+                        for &l in self.cdb[cls].iter() {
+                            let lv = l.var();
+                            if lv != o.var() {
+                                occur.del(l, cls);
+                                qbve.up(lv);
+                            }
                         }
                     }
                     self.cdb.dealloc(cls);
@@ -86,20 +146,31 @@ impl DagCnfSimplify {
     #[inline]
     fn remove_node(&mut self, n: Var) {
         let ln = n.lit();
-        assert!(self.occur.num_occur(ln) == 0);
-        assert!(self.occur.num_occur(!ln) == 0);
+        if let Some((occur, _)) = &mut self.occur {
+            assert!(occur.num_occur(ln) == 0 && occur.num_occur(!ln) == 0);
+        }
         for &cls in self.cnf[ln].iter().chain(self.cnf[!ln].iter()) {
-            for &l in self.cdb[cls].iter() {
-                let lv = l.var();
-                if lv != n {
-                    self.occur.del(l, cls);
-                    self.qbve.up(lv);
+            if let Some((occur, qbve)) = &mut self.occur {
+                for &l in self.cdb[cls].iter() {
+                    let lv = l.var();
+                    if lv != n {
+                        occur.del(l, cls);
+                        qbve.up(lv);
+                    }
                 }
             }
             self.cdb.dealloc(cls);
         }
         self.cnf[ln].clear();
         self.cnf[!ln].clear();
+    }
+
+    fn var_rels(&self, v: Var) -> Vec<u32> {
+        self.cnf[v.lit()]
+            .iter()
+            .chain(self.cnf[!v.lit()].iter())
+            .copied()
+            .collect()
     }
 
     fn resolvent(&self, pcnf: &[u32], ncnf: &[u32], pivot: Var, limit: usize) -> Option<LitVvec> {
@@ -122,17 +193,16 @@ impl DagCnfSimplify {
             return;
         }
         let lv = v.lit();
-        let ocost = self.occur.num_occur(lv)
-            + self.occur.num_occur(!lv)
-            + self.cnf[lv].len()
-            + self.cnf[!lv].len();
+        let occur = &mut self.occur.as_mut().unwrap().0;
+        let ocost =
+            occur.num_occur(lv) + occur.num_occur(!lv) + self.cnf[lv].len() + self.cnf[!lv].len();
         if ocost == 0 || ocost > 2000 {
             return;
         }
         let (pos, neg) = (self.cnf[lv].clone(), self.cnf[!lv].clone());
         let mut ncost = 0;
-        let mut opos = self.occur.get(lv).to_vec();
-        let oneg = self.occur.get(!lv).to_vec();
+        let mut opos = occur.get(lv).to_vec();
+        let oneg = occur.get(!lv).to_vec();
         let Some(respn) = self.resolvent(&pos, &oneg, v, ocost - ncost) else {
             return;
         };
@@ -151,7 +221,7 @@ impl DagCnfSimplify {
         res.extend(resnp);
         let res = clause_subsume_simplify(res);
         opos.extend(oneg);
-        self.remove_rel(opos);
+        self.remove_rels(opos);
         self.remove_node(v);
         for r in res {
             self.add_rel(r);
@@ -159,7 +229,8 @@ impl DagCnfSimplify {
     }
 
     pub fn bve_simplify(&mut self) {
-        while let Some(v) = self.qbve.pop() {
+        self.enable_occur();
+        while let Some(v) = self.occur.as_mut().unwrap().1.pop() {
             self.eliminate(v);
         }
     }
@@ -168,13 +239,18 @@ impl DagCnfSimplify {
         if self.cdb.is_removed(ci) {
             return;
         }
+        let occur = &mut self.occur.as_mut().unwrap().0;
         let best_lit = *self.cdb[ci]
             .iter()
-            .min_by_key(|&&l| self.occur.num_occur(l) + self.cnf[l].len())
+            .min_by_key(|&&l| {
+                occur.num_occur(l) + occur.num_occur(!l) + self.cnf[l].len() + self.cnf[!l].len()
+            })
             .unwrap();
-        let mut occur = self.occur.get(best_lit).to_vec();
-        occur.extend(self.cnf[best_lit].iter());
-        for cj in occur {
+        let mut occurs = occur.get(best_lit).to_vec();
+        occurs.extend_from_slice(occur.get(!best_lit));
+        occurs.extend(self.cnf[best_lit].iter());
+        occurs.extend(self.cnf[!best_lit].iter());
+        for cj in occurs {
             if self.cdb.is_removed(cj) {
                 continue;
             }
@@ -209,6 +285,7 @@ impl DagCnfSimplify {
     }
 
     pub fn subsume_simplify(&mut self) {
+        self.enable_occur();
         for v in Var::CONST..=self.max_var {
             for cls in self.cnf[v.lit()].clone() {
                 self.cls_subsume_check(cls);
@@ -217,9 +294,50 @@ impl DagCnfSimplify {
                 self.cls_subsume_check(cls);
             }
         }
+        self.disable_occur();
+        for v in Var::CONST..=self.max_var {
+            self.cnf[v.lit()].retain(|&c| !self.cdb.is_removed(c));
+            self.cnf[!v.lit()].retain(|&c| !self.cdb.is_removed(c));
+        }
+    }
+
+    pub fn const_simp_var(&mut self, v: Var) {
+        let cls = self.var_rels(v);
+        let mut removed = Vec::new();
+        for c in cls {
+            let cls = self.cdb[c].clone();
+            if let Some(scls) = cls.ordered_simp(&self.value) {
+                assert!(scls.last().var() == v);
+                if cls.len() != scls.len() {
+                    self.add_rel(scls);
+                }
+            } else {
+                removed.push(c);
+            }
+        }
+        self.remove_rels(removed);
+    }
+
+    pub fn const_simplify(&mut self) {
+        self.disable_occur();
+        for v in Var(1)..=self.max_var {
+            self.const_simp_var(v);
+        }
+        for v in Var(1)..=self.max_var {
+            let ln = v.lit();
+            let vv = self.value.v(ln);
+            if !vv.is_none() {
+                self.remove_node(v);
+                if self.frozen.contains(&v) {
+                    self.add_rel(LitVec::from(ln.not_if(vv.is_false())));
+                }
+            }
+        }
     }
 
     pub fn simplify(&mut self) -> DagCnf {
+        let start = Instant::now();
+        self.const_simplify();
         self.bve_simplify();
         self.subsume_simplify();
         let mut dagcnf = DagCnf::new();
@@ -228,12 +346,19 @@ impl DagCnfSimplify {
             let cnf: Vec<_> = self.cnf[v.lit()]
                 .iter()
                 .chain(self.cnf[!v.lit()].iter())
-                .filter(|&&cls| !self.cdb.is_removed(cls))
-                .map(|&cls| self.cdb[cls].cube().clone())
+                .map(|&cls| {
+                    assert!(!self.cdb.is_removed(cls));
+                    self.cdb[cls].cube().clone()
+                })
                 .collect();
-            assert!(cnf.iter().all(|cls| cls.last().var().eq(&v)));
             dagcnf.add_rel(v, &cnf);
         }
+        info!(
+            "dagcnf simplified from {} to {} clauses in {:.2}s",
+            self.num_ocls,
+            dagcnf.num_clause(),
+            start.elapsed().as_secs_f64()
+        );
         dagcnf
     }
 }
