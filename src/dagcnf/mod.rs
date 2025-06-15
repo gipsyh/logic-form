@@ -6,6 +6,7 @@ pub mod simulate;
 use crate::{Lit, LitVec, LitVvec, Var, VarMap, VarVMap};
 use giputils::hash::GHashSet;
 use std::{
+    fmt::Display,
     iter::{Flatten, Zip, once},
     ops::{Index, RangeInclusive},
     slice,
@@ -280,6 +281,15 @@ impl Index<Var> for DagCnf {
     #[inline]
     fn index(&self, index: Var) -> &Self::Output {
         &self.cnf[index]
+    }
+}
+
+impl Display for DagCnf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for cls in self.clause() {
+            writeln!(f, "{cls}")?;
+        }
+        Ok(())
     }
 }
 
