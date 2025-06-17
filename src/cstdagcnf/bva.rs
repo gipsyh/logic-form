@@ -87,8 +87,8 @@ impl BVA {
             let mut matched_lits = vec![max_lit];
             loop {
                 let mut matched_entries: HashMap<Lit, Vec<(usize, usize)>> = HashMap::new();
-                for mcls_idx in 0..matched_clauses.len() {
-                    let mcls = matched_clauses[mcls_idx][0];
+                for (mcls_idx, mclss) in matched_clauses.iter().enumerate() {
+                    let mcls = mclss[0];
                     let Some(least) = self.least_frequent_not(mcls, max_lit) else {
                         continue;
                     };
@@ -139,10 +139,9 @@ impl BVA {
                 }
                 matched_clauses.retain(|m| m.len() == matched_lits.len());
             }
-            if matched_lits.len() == 1 {
-                continue;
-            }
-            if matched_lits.len() <= 2 && matched_clauses.len() <= 2 {
+            if matched_lits.len() * matched_clauses.len()
+                <= matched_lits.len() + matched_clauses.len() + 1
+            {
                 continue;
             }
             let nl = self.dc.new_and(matched_lits);
@@ -180,8 +179,10 @@ impl BVA {
             let mut cls = self.occur.get(v.lit()).to_vec();
             cls.extend(self.occur.get(!v.lit()).iter().copied());
             cls.into_iter().for_each(|cls| {
-                assert!(!self.cdb.is_removed(cls));
-                cst.add_clause(self.cdb[cls].cube());
+                if !self.cdb.is_removed(cls) {
+                    cst.add_clause(self.cdb[cls].cube());
+                    self.cdb.dealloc(cls);
+                }
             });
         }
         CstDagCnf { dag: self.dc, cst }
@@ -219,9 +220,11 @@ mod tests {
         cnf.add_clause(&[Lit::from(1), Lit::from(3)]);
         cnf.add_clause(&[Lit::from(1), Lit::from(4)]);
         cnf.add_clause(&[Lit::from(1), Lit::from(5)]);
+        cnf.add_clause(&[Lit::from(1), Lit::from(6)]);
         cnf.add_clause(&[Lit::from(2), Lit::from(3)]);
         cnf.add_clause(&[Lit::from(2), Lit::from(4)]);
         cnf.add_clause(&[Lit::from(2), Lit::from(5)]);
+        cnf.add_clause(&[Lit::from(2), Lit::from(6)]);
         let bva = BVA::new(cnf);
         dbg!(bva.bva());
     }
