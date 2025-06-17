@@ -1,9 +1,9 @@
-use crate::{Lit, LitMap, LitOrdVec, Var};
+use crate::{Lit, LitMap, Var};
 use giputils::{allocator::Gallocator, grc::Grc, gvec::Gvec, heap::BinaryHeapCmp};
 
 #[derive(Debug, Clone, Default)]
 pub struct Occur {
-    occur: Gvec<u32>,
+    occur: Gvec<usize>,
     dirty: bool,
     size: usize,
 }
@@ -21,7 +21,7 @@ impl Occur {
     }
 
     #[inline]
-    fn clean(&mut self, cdb: &Gallocator<LitOrdVec>) {
+    fn clean<T>(&mut self, cdb: &Gallocator<T>) {
         if self.dirty {
             self.occur.retain(|&i| !cdb.is_removed(i));
             self.dirty = false;
@@ -37,7 +37,7 @@ impl Occur {
     }
 
     #[inline]
-    pub fn add(&mut self, c: u32) {
+    pub fn add(&mut self, c: usize) {
         self.occur.push(c);
         self.size += 1;
     }
@@ -49,15 +49,15 @@ impl Occur {
     }
 }
 
-pub struct Occurs {
+pub struct Occurs<T> {
     occurs: LitMap<Occur>,
-    cdb: Grc<Gallocator<LitOrdVec>>,
+    cdb: Grc<Gallocator<T>>,
 }
 
-impl Occurs {
+impl<T> Occurs<T> {
     #[inline]
     #[allow(unused)]
-    pub fn new(cdb: Grc<Gallocator<LitOrdVec>>) -> Self {
+    pub fn new(cdb: Grc<Gallocator<T>>) -> Self {
         Self {
             occurs: LitMap::new(),
             cdb,
@@ -65,7 +65,7 @@ impl Occurs {
     }
 
     #[inline]
-    pub fn new_with(var: Var, cdb: Grc<Gallocator<LitOrdVec>>) -> Self {
+    pub fn new_with(var: Var, cdb: Grc<Gallocator<T>>) -> Self {
         Self {
             occurs: LitMap::new_with(var),
             cdb,
@@ -84,23 +84,23 @@ impl Occurs {
     }
 
     #[inline]
-    pub fn add(&mut self, lit: Lit, o: u32) {
+    pub fn add(&mut self, lit: Lit, o: usize) {
         self.occurs[lit].add(o);
     }
 
     #[inline]
-    pub fn del(&mut self, lit: Lit, _o: u32) {
+    pub fn del(&mut self, lit: Lit, _o: usize) {
         self.occurs[lit].lazy_remove();
     }
 
     #[inline]
-    pub fn get(&mut self, lit: Lit) -> &[u32] {
+    pub fn get(&mut self, lit: Lit) -> &[usize] {
         self.occurs[lit].clean(&self.cdb);
         &self.occurs[lit].occur
     }
 }
 
-impl BinaryHeapCmp<Var> for Occurs {
+impl<T> BinaryHeapCmp<Var> for Occurs<T> {
     #[inline]
     fn gte(&self, s: Var, o: Var) -> bool {
         self.num_occur(s.lit()) + self.num_occur(!s.lit())

@@ -1,4 +1,3 @@
-mod occur;
 mod replace;
 pub mod simplify;
 pub mod simulate;

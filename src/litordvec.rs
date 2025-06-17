@@ -201,3 +201,10 @@ impl<'a> IntoIterator for &'a LitOrdVec {
         self.cube.iter()
     }
 }
+
+impl<T: Into<LitVec>> From<T> for LitOrdVec {
+    #[inline]
+    fn from(lv: T) -> Self {
+        Self::new(lv.into())
+    }
+}

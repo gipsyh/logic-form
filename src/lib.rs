@@ -2,16 +2,19 @@
 
 mod assign;
 mod cnf;
+mod cstdagcnf;
 mod dagcnf;
 pub mod dimacs;
 mod lbool;
 mod litordvec;
 mod litvec;
 mod litvvec;
+mod occur;
 mod utils;
 
 pub use assign::*;
 pub use cnf::*;
+pub use cstdagcnf::*;
 pub use dagcnf::*;
 pub use lbool::*;
 pub use litordvec::*;

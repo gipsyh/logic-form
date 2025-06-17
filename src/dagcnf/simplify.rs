@@ -1,5 +1,7 @@
-use super::{DagCnf, occur::Occurs};
-use crate::{LitMap, LitOrdVec, LitVec, LitVvec, Var, VarAssign, lemmas_subsume_simplify};
+use super::DagCnf;
+use crate::{
+    LitMap, LitOrdVec, LitVec, LitVvec, Var, VarAssign, lemmas_subsume_simplify, occur::Occurs,
+};
 use giputils::{allocator::Gallocator, grc::Grc, hash::GHashSet, heap::BinaryHeap};
 use log::info;
 use std::{iter::once, time::Instant};
@@ -7,8 +9,8 @@ use std::{iter::once, time::Instant};
 pub struct DagCnfSimplify {
     cdb: Grc<Gallocator<LitOrdVec>>,
     max_var: Var,
-    cnf: LitMap<Vec<u32>>,
-    occur: Option<(Grc<Occurs>, BinaryHeap<Var, Occurs>)>,
+    cnf: LitMap<Vec<usize>>,
+    occur: Option<(Grc<Occurs<LitOrdVec>>, BinaryHeap<Var, Occurs<LitOrdVec>>)>,
     frozen: GHashSet<Var>,
     value: VarAssign,
     num_ocls: usize,
@@ -96,7 +98,7 @@ impl DagCnfSimplify {
     }
 
     #[allow(unused)]
-    fn remove_rel(&mut self, rel: u32) {
+    fn remove_rel(&mut self, rel: usize) {
         let o = self.cdb[rel].last();
         let mut i = 0;
         while i < self.cnf[o].len() {
@@ -118,7 +120,7 @@ impl DagCnfSimplify {
         }
     }
 
-    fn remove_rels(&mut self, rels: Vec<u32>) {
+    fn remove_rels(&mut self, rels: Vec<usize>) {
         let relset = GHashSet::from_iter(rels.iter().copied());
         let outs = GHashSet::from_iter(rels.iter().map(|&cls| self.cdb[cls].last()));
         for o in outs {
@@ -165,7 +167,7 @@ impl DagCnfSimplify {
         self.cnf[!ln].clear();
     }
 
-    fn var_rels(&self, v: Var) -> Vec<u32> {
+    fn var_rels(&self, v: Var) -> Vec<usize> {
         self.cnf[v.lit()]
             .iter()
             .chain(self.cnf[!v.lit()].iter())
@@ -173,7 +175,13 @@ impl DagCnfSimplify {
             .collect()
     }
 
-    fn resolvent(&self, pcnf: &[u32], ncnf: &[u32], pivot: Var, limit: usize) -> Option<LitVvec> {
+    fn resolvent(
+        &self,
+        pcnf: &[usize],
+        ncnf: &[usize],
+        pivot: Var,
+        limit: usize,
+    ) -> Option<LitVvec> {
         let mut res = LitVvec::new();
         for &pcls in pcnf {
             for &ncls in ncnf {
@@ -235,7 +243,7 @@ impl DagCnfSimplify {
         }
     }
 
-    fn cls_subsume_check(&mut self, ci: u32) {
+    fn cls_subsume_check(&mut self, ci: usize) {
         if self.cdb.is_removed(ci) {
             return;
         }

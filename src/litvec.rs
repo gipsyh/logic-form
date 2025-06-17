@@ -350,6 +350,13 @@ impl From<&[Lit]> for LitVec {
     }
 }
 
+impl From<&LitVec> for LitVec {
+    #[inline]
+    fn from(s: &LitVec) -> Self {
+        s.clone()
+    }
+}
+
 impl From<LitVec> for Vec<Lit> {
     #[inline]
     fn from(val: LitVec) -> Self {
