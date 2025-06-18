@@ -1,3 +1,3 @@
-# logic-form
+# logicrs
 
-Rust library for representing Cube, Clause, CNF and DNF
+Rust library for logic expression

@@ -1,10 +1,10 @@
 [package]
 name = "logicrs"
-version = "0.5.0"
+version = "0.5.1"
 license = "MIT"
 description = "Rust library for logic expression"
 edition = "2024"
-repository = "https://github.com/gipsyh/logic-form"
+repository = "https://github.com/gipsyh/logicrs"
 authors = ["Yuheng Su <gipsyh.icu@gmail.com>"]
 keywords = ["logic"]
 
