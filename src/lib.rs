@@ -10,6 +10,7 @@ mod litordvec;
 mod litvec;
 mod litvvec;
 mod occur;
+pub mod satif;
 mod utils;
 
 pub use assign::*;
