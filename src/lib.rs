@@ -1,10 +1,11 @@
-#![feature(step_trait)]
+#![feature(step_trait, try_trait_v2)]
 
 mod assign;
 mod cnf;
 mod cstdagcnf;
 mod dagcnf;
 pub mod dimacs;
+pub mod fol;
 mod lbool;
 mod litordvec;
 mod litvec;
