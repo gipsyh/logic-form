@@ -241,7 +241,7 @@ impl VarSet {
     }
 
     #[inline]
-    pub fn iter(&self) -> slice::Iter<Var> {
+    pub fn iter(&'_ self) -> slice::Iter<'_, Var> {
         self.set.iter()
     }
 
@@ -317,7 +317,7 @@ impl LitSet {
     }
 
     #[inline]
-    pub fn iter(&self) -> slice::Iter<Lit> {
+    pub fn iter(&'_ self) -> slice::Iter<'_, Lit> {
         self.set.iter()
     }
 
