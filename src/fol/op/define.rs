@@ -65,7 +65,7 @@ macro_rules! define_core_op {
             }
 
             #[inline]
-            fn normalize(&self, _tm: &mut crate::fol::TermManager, _terms: &[crate::fol::Term]) -> crate::fol::Term {
+            fn normalize(&self, _terms: &[crate::fol::Term]) -> crate::fol::Term {
                 panic!("{:?} not support normalize", self);
             }
 
@@ -104,13 +104,9 @@ macro_rules! define_non_core_op {
             }
 
             #[inline]
-            fn normalize(
-                &self,
-                tm: &mut crate::fol::TermManager,
-                terms: &[crate::fol::Term],
-            ) -> crate::fol::Term {
+            fn normalize(&self, terms: &[crate::fol::Term]) -> crate::fol::Term {
                 debug_assert!(self.num_operand() == terms.len());
-                $normalize(tm, terms)
+                $normalize(terms)
             }
         }
     };

@@ -42,7 +42,7 @@ pub trait Op: Debug + 'static {
         terms[0].sort()
     }
 
-    fn normalize(&self, _tm: &mut TermManager, _terms: &[Term]) -> Term {
+    fn normalize(&self, _terms: &[Term]) -> Term {
         panic!("{self:?} not support normalize");
     }
 
@@ -165,9 +165,4 @@ impl From<&str> for DynOp {
 //     Umulo,
 //     Ssubo,
 //     Usubo,
-//     Read,
-// }
-
-// pub enum TriOpType {
-//     Write,
 // }

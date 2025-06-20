@@ -17,7 +17,7 @@ impl TermVec {
 
     #[inline]
     pub fn get_manager(&self) -> TermManager {
-        self[0].get_manager()
+        self[0].get_tm()
     }
 
     #[inline]

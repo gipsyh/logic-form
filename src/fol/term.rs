@@ -18,7 +18,7 @@ pub struct Term {
 
 impl Term {
     #[inline]
-    pub fn get_manager(&self) -> TermManager {
+    pub fn get_tm(&self) -> TermManager {
         self.tm.clone()
     }
 
@@ -75,19 +75,19 @@ impl Term {
 
     #[inline]
     pub fn mk_bv_const_zero(&self) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         tm.bv_const_zero(self.bv_len())
     }
 
     #[inline]
     pub fn mk_bv_const_one(&self) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         tm.bv_const_one(self.bv_len())
     }
 
     #[inline]
     pub fn mk_bv_const_ones(&self) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         tm.bv_const_ones(self.bv_len())
     }
 
@@ -97,26 +97,26 @@ impl Term {
         op: impl Into<DynOp>,
         terms: impl IntoIterator<Item = impl AsRef<Term> + 'a>,
     ) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         let terms = once(self.clone()).chain(terms.into_iter().map(|l| l.as_ref().clone()));
         tm.new_op_term(op.into(), terms)
     }
 
     #[inline]
     pub fn op0(&self, op: impl Into<DynOp>) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         tm.new_op_term(op.into(), [self])
     }
 
     #[inline]
     pub fn op1(&self, op: impl Into<DynOp>, x: &Term) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         tm.new_op_term(op.into(), [self, x])
     }
 
     #[inline]
     pub fn op2(&self, op: impl Into<DynOp>, x: &Term, y: &Term) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         tm.new_op_term(op.into(), [self, x, y])
     }
 
@@ -131,7 +131,7 @@ impl Term {
     }
 
     pub fn slice(&self, l: usize, h: usize) -> Term {
-        let mut tm = self.get_manager();
+        let mut tm = self.get_tm();
         let h = tm.bv_const_zero(h);
         let l = tm.bv_const_zero(l);
         self.op2(Slice, &h, &l)
@@ -521,7 +521,7 @@ impl TermManager {
         let op: DynOp = op.into();
         let terms: Vec<Term> = terms.into_iter().map(|t| t.as_ref().clone()).collect();
         if !op.is_core() {
-            return op.normalize(self, &terms);
+            return op.normalize(&terms);
         }
         let sort = op.sort(&terms);
         let term = TermType::Op(OpTerm::new(op, terms));
