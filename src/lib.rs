@@ -235,6 +235,11 @@ impl Lit {
     }
 
     #[inline]
+    pub fn try_constant(&self) -> Option<bool> {
+        self.var().is_constant().then_some(self.is_constant(true))
+    }
+
+    #[inline]
     pub fn is_constant(&self, polarity: bool) -> bool {
         *self == Self::constant(polarity)
     }
