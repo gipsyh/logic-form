@@ -1,9 +1,11 @@
 use super::TermVec;
 use super::op::{Add, And, Ite, Neg, Not, Or, Sub, Xor};
 use super::{op::DynOp, sort::Sort};
+use crate::fol::op::Slice;
 use giputils::grc::Grc;
 use giputils::hash::GHashMap;
 use std::fmt::{self, Debug};
+use std::iter::once;
 use std::ops::{ControlFlow, DerefMut, FromResidual, Index, Try};
 use std::{hash, ops};
 use std::{hash::Hash, ops::Deref};
@@ -93,10 +95,11 @@ impl Term {
     pub fn op<'a>(
         &'a self,
         op: impl Into<DynOp>,
-        terms: impl IntoIterator<Item = &'a Term>,
+        terms: impl IntoIterator<Item = impl AsRef<Term> + 'a>,
     ) -> Term {
         let mut tm = self.get_manager();
-        tm.new_op_term(op.into(), [self].into_iter().chain(terms))
+        let terms = once(self.clone()).chain(terms.into_iter().map(|l| l.as_ref().clone()));
+        tm.new_op_term(op.into(), terms)
     }
 
     #[inline]
@@ -118,8 +121,20 @@ impl Term {
     }
 
     #[inline]
+    pub fn not_if(&self, c: bool) -> Term {
+        if c { !self } else { self.clone() }
+    }
+
+    #[inline]
     pub fn ite(&self, t: &Term, e: &Term) -> Term {
         self.op2(Ite, t, e)
+    }
+
+    pub fn slice(&self, l: usize, h: usize) -> Term {
+        let mut tm = self.get_manager();
+        let h = tm.bv_const_zero(h);
+        let l = tm.bv_const_zero(l);
+        self.op2(Slice, &h, &l)
     }
 }
 
@@ -498,13 +513,13 @@ impl TermManager {
     }
 
     #[inline]
-    pub fn new_op_term<'a>(
+    pub fn new_op_term(
         &mut self,
         op: impl Into<DynOp>,
-        terms: impl IntoIterator<Item = &'a Term>,
+        terms: impl IntoIterator<Item = impl AsRef<Term>>,
     ) -> Term {
         let op: DynOp = op.into();
-        let terms: Vec<Term> = terms.into_iter().map(|t| (*t).clone()).collect();
+        let terms: Vec<Term> = terms.into_iter().map(|t| t.as_ref().clone()).collect();
         if !op.is_core() {
             return op.normalize(self, &terms);
         }
@@ -514,14 +529,16 @@ impl TermManager {
     }
 
     #[inline]
-    pub fn new_op_terms_fold<'a>(
+    pub fn new_op_terms_fold(
         &mut self,
         op: impl Into<DynOp> + Copy,
-        terms: impl IntoIterator<Item = &'a Term>,
+        terms: impl IntoIterator<Item = impl AsRef<Term>>,
     ) -> Term {
         let mut terms = terms.into_iter();
-        let acc = terms.next().unwrap().clone();
-        terms.fold(acc, |acc, x| self.new_op_term(op, &[acc, x.clone()]))
+        let acc = terms.next().unwrap().as_ref().clone();
+        terms.fold(acc, |acc, x| {
+            self.new_op_term(op, &[acc, x.as_ref().clone()])
+        })
     }
 
     #[inline]
