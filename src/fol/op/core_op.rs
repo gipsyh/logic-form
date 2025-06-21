@@ -475,12 +475,7 @@ fn sext_bitblast(_tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
 }
 
 define_core_op!(Slice, 3, sort: slice_sort, bitblast: slice_bitblast, simplify: slice_simplify);
-fn slice_simplify(_tm: &mut TermManager, terms: &[Term]) -> TermResult {
-    if let Some(op) = terms[0].try_op_term()
-        && op.op == Concat
-    {
-        panic!()
-    }
+fn slice_simplify(_tm: &mut TermManager, _terms: &[Term]) -> TermResult {
     TermResult::None
 }
 fn slice_sort(terms: &[Term]) -> Sort {
