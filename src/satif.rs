@@ -36,6 +36,11 @@ pub trait Satif {
 
     fn sat_value(&self, lit: Lit) -> Option<bool>;
 
+    #[inline]
+    fn sat_value_lit(&self, var: Var) -> Option<Lit> {
+        self.sat_value(var.lit()).map(|v| Lit::new(var, v))
+    }
+
     fn unsat_has(&self, _lit: Lit) -> bool {
         panic!("unsupport assumption");
     }
