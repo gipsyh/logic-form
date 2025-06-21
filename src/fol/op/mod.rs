@@ -147,9 +147,6 @@ impl From<&str> for DynOp {
 }
 
 // pub enum BiOpType {
-//     Iff,
-//     Nand,
-//     Nor,
 //     Rol,
 //     Ror,
 //     Sdiv,

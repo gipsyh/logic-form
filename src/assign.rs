@@ -29,6 +29,16 @@ impl VarAssign {
     }
 
     #[inline]
+    pub fn vl(&self, v: Var) -> Option<Lit> {
+        let val = self.v[v];
+        if val == Lbool::NONE {
+            None
+        } else {
+            Some(Lit::new(v, val.is_true()))
+        }
+    }
+
+    #[inline]
     pub fn set(&mut self, lit: Lit) {
         self.v[lit] = Lbool(lit.polarity() as u8)
     }

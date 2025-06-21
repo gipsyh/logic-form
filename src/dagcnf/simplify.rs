@@ -351,7 +351,7 @@ impl DagCnfSimplify {
         let mut dagcnf = DagCnf::new();
         dagcnf.new_var_to(self.max_var);
         for v in Var(1)..=self.max_var {
-            let cnf: Vec<_> = self.cnf[v.lit()]
+            let mut cnf: Vec<_> = self.cnf[v.lit()]
                 .iter()
                 .chain(self.cnf[!v.lit()].iter())
                 .map(|&cls| {
@@ -359,6 +359,12 @@ impl DagCnfSimplify {
                     self.cdb[cls].cube().clone()
                 })
                 .collect();
+            if self.frozen.contains(&v)
+                && let Some(vl) = self.value.vl(v)
+            {
+                cnf.clear();
+                cnf.push(LitVec::from(vl));
+            }
             dagcnf.add_rel(v, &cnf);
         }
         info!(
