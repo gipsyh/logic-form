@@ -276,16 +276,6 @@ fn slt_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
     TermVec::from([ls | (eqs & el)])
 }
 
-fn get_shift_size(x: usize) -> usize {
-    let mut pow2 = 1;
-    let mut res = 0;
-    while pow2 < x {
-        pow2 *= 2;
-        res += 1;
-    }
-    res
-}
-
 define_core_op!(Sll, 2, bitblast: sll_bitblast);
 fn sll_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
     let (x, y) = (&terms[0], &terms[1]);
@@ -294,17 +284,21 @@ fn sll_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
         return TermVec::from([&x[0] & !&y[0]]);
     }
     let width = x.len();
-    let shift_size = get_shift_size(width);
     let mut res = x.clone();
-    for shift_bit in 0..shift_size {
+    for shift_bit in 0..width {
         let shift_step = 1 << shift_bit;
+        if shift_step > width {
+            break;
+        }
         let shift = &y[shift_bit];
+        let mut nres = TermVec::new();
         for j in 0..shift_step {
-            res[j] = &!shift & &res[j];
+            nres.push(&!shift & &res[j]);
         }
         for j in shift_step..width {
-            res[j] = tm.new_op_term(Ite, [shift, &res[j - shift_step], &res[j]]);
+            nres.push(tm.new_op_term(Ite, [shift, &res[j - shift_step], &res[j]]));
         }
+        res = nres;
     }
     let width_bv = tm
         .bv_const_from_usize(width, width)
@@ -313,9 +307,8 @@ fn sll_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
         .clone();
     let width_bv = width_bv.bitblast(tm);
     let less = &ult_bitblast(tm, &[terms[1].clone(), width_bv])[0];
-    let f = tm.bool_const(false);
     for r in res.iter_mut() {
-        *r = tm.new_op_term(Ite, [less, r, &f]);
+        *r = less & &r;
     }
     res
 }
@@ -328,17 +321,21 @@ fn srl_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
         return TermVec::from([&x[0] & !&y[0]]);
     }
     let width = x.len();
-    let shift_size = get_shift_size(width);
     let mut res = x.clone();
-    for shift_bit in 0..shift_size {
+    for shift_bit in 0..width {
         let shift_step = 1 << shift_bit;
+        if width < shift_step {
+            break;
+        }
         let shift = &y[shift_bit];
+        let mut nres = TermVec::new();
         for j in 0..width - shift_step {
-            res[j] = tm.new_op_term(Ite, [shift, &res[j + shift_step], &res[j]]);
+            nres.push(tm.new_op_term(Ite, [shift, &res[j + shift_step], &res[j]]));
         }
         for j in width - shift_step..width {
-            res[j] = &!shift & &res[j];
+            nres.push(&!shift & &res[j]);
         }
+        res = nres;
     }
     let width_bv = tm
         .bv_const_from_usize(width, width)
@@ -347,9 +344,8 @@ fn srl_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
         .clone();
     let width_bv = width_bv.bitblast(tm);
     let less = &ult_bitblast(tm, &[terms[1].clone(), width_bv])[0];
-    let f = tm.bool_const(false);
     for r in res.iter_mut() {
-        *r = tm.new_op_term(Ite, [less, r, &f]);
+        *r = less & &r;
     }
     res
 }
@@ -362,17 +358,21 @@ fn sra_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
         return x.clone();
     }
     let width = x.len();
-    let shift_size = get_shift_size(width);
     let mut res = x.clone();
-    for shift_bit in 0..shift_size {
+    for shift_bit in 0..width {
         let shift_step = 1 << shift_bit;
+        if width < shift_step {
+            break;
+        }
         let shift = &y[shift_bit];
+        let mut nres = TermVec::new();
         for j in 0..width - shift_step {
-            res[j] = tm.new_op_term(Ite, [shift, &res[j + shift_step], &res[j]]);
+            nres.push(tm.new_op_term(Ite, [shift, &res[j + shift_step], &res[j]]));
         }
         for j in width - shift_step..width {
-            res[j] = tm.new_op_term(Ite, [shift, &res[width - 1], &res[j]]);
+            nres.push(tm.new_op_term(Ite, [shift, &res[width - 1], &res[j]]));
         }
+        res = nres;
     }
     let width_bv = tm
         .bv_const_from_usize(width, width)
