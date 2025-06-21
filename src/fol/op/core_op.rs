@@ -287,28 +287,15 @@ fn sll_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
     let mut res = x.clone();
     for shift_bit in 0..width {
         let shift_step = 1 << shift_bit;
-        if shift_step > width {
-            break;
-        }
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
-        for j in 0..shift_step {
+        for j in 0..shift_step.min(width) {
             nres.push(&!shift & &res[j]);
         }
         for j in shift_step..width {
             nres.push(tm.new_op_term(Ite, [shift, &res[j - shift_step], &res[j]]));
         }
         res = nres;
-    }
-    let width_bv = tm
-        .bv_const_from_usize(width, width)
-        .try_bv_const()
-        .unwrap()
-        .clone();
-    let width_bv = width_bv.bitblast(tm);
-    let less = &ult_bitblast(tm, &[terms[1].clone(), width_bv])[0];
-    for r in res.iter_mut() {
-        *r = less & &r;
     }
     res
 }
@@ -324,28 +311,16 @@ fn srl_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
     let mut res = x.clone();
     for shift_bit in 0..width {
         let shift_step = 1 << shift_bit;
-        if width < shift_step {
-            break;
-        }
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
-        for j in 0..width - shift_step {
+        let c = width.saturating_sub(shift_step);
+        for j in 0..c {
             nres.push(tm.new_op_term(Ite, [shift, &res[j + shift_step], &res[j]]));
         }
-        for j in width - shift_step..width {
+        for j in c..width {
             nres.push(&!shift & &res[j]);
         }
         res = nres;
-    }
-    let width_bv = tm
-        .bv_const_from_usize(width, width)
-        .try_bv_const()
-        .unwrap()
-        .clone();
-    let width_bv = width_bv.bitblast(tm);
-    let less = &ult_bitblast(tm, &[terms[1].clone(), width_bv])[0];
-    for r in res.iter_mut() {
-        *r = less & &r;
     }
     res
 }
@@ -361,29 +336,16 @@ fn sra_bitblast(tm: &mut TermManager, terms: &[TermVec]) -> TermVec {
     let mut res = x.clone();
     for shift_bit in 0..width {
         let shift_step = 1 << shift_bit;
-        if width < shift_step {
-            break;
-        }
+        let c = width.saturating_sub(shift_step);
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
-        for j in 0..width - shift_step {
+        for j in 0..c {
             nres.push(tm.new_op_term(Ite, [shift, &res[j + shift_step], &res[j]]));
         }
-        for j in width - shift_step..width {
+        for j in c..width {
             nres.push(tm.new_op_term(Ite, [shift, &res[width - 1], &res[j]]));
         }
         res = nres;
-    }
-    let width_bv = tm
-        .bv_const_from_usize(width, width)
-        .try_bv_const()
-        .unwrap()
-        .clone();
-    let width_bv = width_bv.bitblast(tm);
-    let less = &ult_bitblast(tm, &[terms[1].clone(), width_bv])[0];
-    let sign = &x[width - 1];
-    for r in res.iter_mut() {
-        *r = tm.new_op_term(Ite, [less, r, sign]);
     }
     res
 }
