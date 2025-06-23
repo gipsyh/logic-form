@@ -47,8 +47,7 @@ fn redor_normalize(terms: &[Term]) -> Term {
 
 define_non_core_op!(Neq, 2, neq_normalize);
 fn neq_normalize(terms: &[Term]) -> Term {
-    let mut tm = terms[0].get_tm();
-    !tm.new_op_term(Eq, terms)
+    !Term::new_op(Eq, terms)
 }
 
 define_non_core_op!(Implies, 2, implies_normalize);
@@ -58,8 +57,7 @@ fn implies_normalize(terms: &[Term]) -> Term {
 
 define_non_core_op!(Xnor, 2, xnor_normalize);
 fn xnor_normalize(terms: &[Term]) -> Term {
-    let mut tm = terms[0].get_tm();
-    !tm.new_op_term(Xor, terms)
+    !Term::new_op(Xor, terms)
 }
 
 define_non_core_op!(Uext, 2, uext_normalize);
@@ -67,8 +65,7 @@ fn uext_normalize(terms: &[Term]) -> Term {
     if terms[1].bv_len() == 0 {
         terms[0].clone()
     } else {
-        let mut tm = terms[0].get_tm();
-        tm.new_op_term(Concat, &[terms[1].clone(), terms[0].clone()])
+        Term::new_op(Concat, &[terms[1].clone(), terms[0].clone()])
     }
 }
 
@@ -84,8 +81,7 @@ fn ulte_normalize(terms: &[Term]) -> Term {
 
 define_non_core_op!(Ugte, 2, ugte_normalize);
 fn ugte_normalize(terms: &[Term]) -> Term {
-    let mut tm = terms[0].get_tm();
-    !tm.new_op_term(Ult, terms)
+    !Term::new_op(Ult, terms)
 }
 
 define_non_core_op!(Sgt, 2, sgt_normalize);
@@ -100,8 +96,7 @@ fn slte_normalize(terms: &[Term]) -> Term {
 
 define_non_core_op!(Sgte, 2, sgte_normalize);
 fn sgte_normalize(terms: &[Term]) -> Term {
-    let mut tm = terms[0].get_tm();
-    !tm.new_op_term(Slt, terms)
+    !Term::new_op(Slt, terms)
 }
 
 define_non_core_op!(Sub, 2, sub_normalize);

@@ -1,12 +1,12 @@
-use super::{BvConst, Sort, Term, TermManager, TermType, TermVec};
+use super::{BvConst, Sort, Term, TermType, TermVec};
 use crate::{DagCnf, Lit};
 use giputils::hash::GHashMap;
 use std::{iter::repeat_with, ops::Deref};
 
 impl BvConst {
     #[inline]
-    pub fn bitblast(&self, tm: &mut TermManager) -> TermVec {
-        self.iter().map(|c| tm.bool_const(*c)).collect()
+    pub fn bitblast(&self) -> TermVec {
+        self.iter().map(|c| Term::bool_const(*c)).collect()
     }
 
     #[inline]
@@ -16,7 +16,7 @@ impl BvConst {
     }
 }
 
-pub fn var_bitblast(tm: &mut TermManager, sort: Sort) -> TermVec {
+pub fn var_bitblast(sort: Sort) -> TermVec {
     let size = match sort {
         Sort::Bv(s) => s,
         Sort::Array(i, e) => {
@@ -24,23 +24,22 @@ pub fn var_bitblast(tm: &mut TermManager, sort: Sort) -> TermVec {
             shifted.checked_mul(e).unwrap()
         }
     };
-    repeat_with(|| tm.new_var(Sort::bool()))
+    repeat_with(|| Term::new_var(Sort::bool()))
         .take(size)
         .collect()
 }
 
 impl Term {
-    pub fn bitblast(&self, tm: &mut TermManager, map: &mut GHashMap<Term, TermVec>) -> TermVec {
+    pub fn bitblast(&self, map: &mut GHashMap<Term, TermVec>) -> TermVec {
         if let Some(res) = map.get(self) {
             return res.clone();
         }
         let blast = match self.deref() {
-            TermType::Const(const_term) => const_term.bitblast(tm),
-            TermType::Var(_) => var_bitblast(tm, self.sort()),
+            TermType::Const(const_term) => const_term.bitblast(),
+            TermType::Var(_) => var_bitblast(self.sort()),
             TermType::Op(op_term) => {
-                let terms: Vec<TermVec> =
-                    op_term.terms.iter().map(|s| s.bitblast(tm, map)).collect();
-                op_term.op.bitblast(tm, &terms)
+                let terms: Vec<TermVec> = op_term.terms.iter().map(|s| s.bitblast(map)).collect();
+                op_term.op.bitblast(&terms)
             }
         };
         map.insert(self.clone(), blast.clone());
@@ -70,10 +69,9 @@ impl Term {
 
 pub fn bitblast_terms<'a, I: IntoIterator<Item = &'a Term>>(
     terms: I,
-    tm: &mut TermManager,
     map: &mut GHashMap<Term, TermVec>,
 ) -> impl Iterator<Item = TermVec> {
-    terms.into_iter().map(|t| t.bitblast(tm, map))
+    terms.into_iter().map(|t| t.bitblast(map))
 }
 
 pub fn cnf_encode_terms<'a, I: IntoIterator<Item = &'a Term>>(

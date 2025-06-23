@@ -1,27 +1,112 @@
-use super::TermVec;
 use super::op::{Add, And, Ite, Neg, Not, Or, Sub, Xor};
 use super::{op::DynOp, sort::Sort};
+use crate::fol::TermVec;
 use crate::fol::op::Slice;
 use giputils::grc::Grc;
 use giputils::hash::GHashMap;
+use std::cell::UnsafeCell;
 use std::fmt::{self, Debug};
 use std::iter::once;
-use std::ops::{ControlFlow, DerefMut, FromResidual, Index, Try};
+use std::ops::{DerefMut, Index};
+use std::thread_local;
 use std::{hash, ops};
 use std::{hash::Hash, ops::Deref};
 
 #[derive(Clone)]
 pub struct Term {
-    tm: TermManager,
     pub(crate) inner: Grc<TermInner>,
 }
 
 impl Term {
     #[inline]
-    pub fn get_tm(&self) -> TermManager {
-        self.tm.clone()
+    pub fn bool_const(c: bool) -> Term {
+        tm().new_term(TermType::Const(BvConst::new(&[c])), Sort::Bv(1))
     }
 
+    #[inline]
+    pub fn bv_const(c: BvConst) -> Term {
+        let sort = Sort::Bv(c.len());
+        tm().new_term(TermType::Const(c), sort)
+    }
+
+    #[inline]
+    pub fn bv_const_zero(len: usize) -> Term {
+        tm().new_term(
+            TermType::Const(BvConst::new(&vec![false; len])),
+            Sort::Bv(len),
+        )
+    }
+
+    #[inline]
+    pub fn bv_const_one(len: usize) -> Term {
+        let mut c = vec![false; len];
+        c[0] = true;
+        tm().new_term(TermType::Const(BvConst::new(&c)), Sort::Bv(len))
+    }
+
+    #[inline]
+    pub fn bv_const_ones(len: usize) -> Term {
+        tm().new_term(
+            TermType::Const(BvConst::new(&vec![true; len])),
+            Sort::Bv(len),
+        )
+    }
+
+    #[inline]
+    pub fn bv_const_from_usize(mut v: usize, width: usize) -> Term {
+        let mut bv = Vec::new();
+        while v > 0 {
+            bv.push(width & 1 == 1);
+            v >>= 1;
+        }
+        while bv.len() < width {
+            bv.push(false);
+        }
+        bv.truncate(width);
+        Self::bv_const(BvConst::new(&bv))
+    }
+
+    #[inline]
+    pub fn new_op(op: impl Into<DynOp>, terms: impl IntoIterator<Item = impl AsRef<Term>>) -> Term {
+        let op: DynOp = op.into();
+        let terms: Vec<Term> = terms.into_iter().map(|t| t.as_ref().clone()).collect();
+        if !op.is_core() {
+            return op.normalize(&terms);
+        }
+        let sort = op.sort(&terms);
+        let term = TermType::Op(OpTerm::new(op, terms));
+        tm().new_term(term, sort)
+    }
+
+    #[inline]
+    pub fn new_var(sort: Sort) -> Term {
+        tm().new_var(sort)
+    }
+
+    #[inline]
+    pub fn new_op_fold(
+        op: impl Into<DynOp> + Copy,
+        terms: impl IntoIterator<Item = impl AsRef<Term>>,
+    ) -> Term {
+        let mut terms = terms.into_iter();
+        let acc = terms.next().unwrap().as_ref().clone();
+        terms.fold(acc, |acc, x| Self::new_op(op, &[acc, x.as_ref().clone()]))
+    }
+
+    #[inline]
+    pub fn new_op_elementwise<'a>(
+        op: impl Into<DynOp> + Copy,
+        x: impl IntoIterator<Item = &'a Term>,
+        y: impl IntoIterator<Item = &'a Term>,
+    ) -> TermVec {
+        x.into_iter()
+            .zip(y)
+            .map(|(x, y)| Self::new_op(op, [x, y]))
+            .collect()
+    }
+}
+
+impl Term {
     #[inline]
     pub fn sort(&self) -> Sort {
         self.inner.sort()
@@ -38,26 +123,12 @@ impl Term {
     }
 
     #[inline]
-    pub fn try_op_term(&self) -> Option<&OpTerm> {
+    pub fn try_op(&self) -> Option<&OpTerm> {
         if let TermType::Op(op) = self.deref() {
             Some(op)
         } else {
             None
         }
-    }
-
-    #[inline]
-    pub fn try_var_term(&self) -> Option<u32> {
-        if let TermType::Var(v) = self.deref() {
-            Some(*v)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    pub fn var_term(&self) -> u32 {
-        self.try_var_term().unwrap()
     }
 
     #[inline]
@@ -74,50 +145,28 @@ impl Term {
     }
 
     #[inline]
-    pub fn mk_bv_const_zero(&self) -> Term {
-        let mut tm = self.get_tm();
-        tm.bv_const_zero(self.bv_len())
-    }
-
-    #[inline]
-    pub fn mk_bv_const_one(&self) -> Term {
-        let mut tm = self.get_tm();
-        tm.bv_const_one(self.bv_len())
-    }
-
-    #[inline]
-    pub fn mk_bv_const_ones(&self) -> Term {
-        let mut tm = self.get_tm();
-        tm.bv_const_ones(self.bv_len())
-    }
-
-    #[inline]
     pub fn op<'a>(
         &'a self,
         op: impl Into<DynOp>,
         terms: impl IntoIterator<Item = impl AsRef<Term> + 'a>,
     ) -> Term {
-        let mut tm = self.get_tm();
         let terms = once(self.clone()).chain(terms.into_iter().map(|l| l.as_ref().clone()));
-        tm.new_op_term(op.into(), terms)
+        Self::new_op(op.into(), terms)
     }
 
     #[inline]
     pub fn op0(&self, op: impl Into<DynOp>) -> Term {
-        let mut tm = self.get_tm();
-        tm.new_op_term(op.into(), [self])
+        Self::new_op(op.into(), [self])
     }
 
     #[inline]
     pub fn op1(&self, op: impl Into<DynOp>, x: &Term) -> Term {
-        let mut tm = self.get_tm();
-        tm.new_op_term(op.into(), [self, x])
+        Self::new_op(op.into(), [self, x])
     }
 
     #[inline]
     pub fn op2(&self, op: impl Into<DynOp>, x: &Term, y: &Term) -> Term {
-        let mut tm = self.get_tm();
-        tm.new_op_term(op.into(), [self, x, y])
+        Self::new_op(op.into(), [self, x, y])
     }
 
     #[inline]
@@ -131,10 +180,24 @@ impl Term {
     }
 
     pub fn slice(&self, l: usize, h: usize) -> Term {
-        let mut tm = self.get_tm();
-        let h = tm.bv_const_zero(h);
-        let l = tm.bv_const_zero(l);
+        let h = Self::bv_const_zero(h);
+        let l = Self::bv_const_zero(l);
         self.op2(Slice, &h, &l)
+    }
+
+    #[inline]
+    pub fn mk_bv_const_zero(&self) -> Term {
+        Term::bv_const_zero(self.bv_len())
+    }
+
+    #[inline]
+    pub fn mk_bv_const_one(&self) -> Term {
+        Term::bv_const_one(self.bv_len())
+    }
+
+    #[inline]
+    pub fn mk_bv_const_ones(&self) -> Term {
+        Term::bv_const_ones(self.bv_len())
     }
 }
 
@@ -165,7 +228,6 @@ impl<T: AsRef<Term>> PartialEq<T> for Term {
     #[inline]
     fn eq(&self, other: &T) -> bool {
         let other = other.as_ref();
-        debug_assert!(self.tm == other.tm);
         self.inner == other.inner
     }
 }
@@ -180,9 +242,10 @@ impl AsRef<Term> for Term {
 }
 
 impl Drop for Term {
+    #[inline]
     fn drop(&mut self) {
         let g = self.clone();
-        self.tm.tgc.collect(g);
+        tm().tgc.collect(g);
     }
 }
 
@@ -274,7 +337,7 @@ impl Deref for TermInner {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum TermType {
     Const(BvConst),
-    Var(u32),
+    Var(usize),
     Op(OpTerm),
 }
 
@@ -300,6 +363,7 @@ impl BvConst {
     }
 
     #[inline]
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.c.len()
     }
@@ -384,37 +448,6 @@ impl Index<usize> for OpTerm {
     }
 }
 
-pub enum TermResult {
-    Some(Term),
-    None,
-}
-
-impl FromResidual for TermResult {
-    #[inline]
-    fn from_residual(residual: <Self as Try>::Residual) -> Self {
-        TermResult::Some(residual)
-    }
-}
-
-impl Try for TermResult {
-    type Output = ();
-
-    type Residual = Term;
-
-    #[inline]
-    fn from_output(_: Self::Output) -> Self {
-        TermResult::None
-    }
-
-    #[inline]
-    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-        match self {
-            TermResult::Some(term) => ControlFlow::Break(term),
-            TermResult::None => ControlFlow::Continue(()),
-        }
-    }
-}
-
 #[derive(Clone, Default, PartialEq, Eq, Debug)]
 pub struct TermGC {
     garbage: Grc<Vec<Term>>,
@@ -428,30 +461,19 @@ impl TermGC {
 }
 
 #[derive(Default)]
-pub struct TermManagerInner {
+struct TermManager {
     tgc: TermGC,
-    num_var: u32,
+    avl_vid: usize,
     map: GHashMap<TermType, Term>,
 }
 
-#[derive(Clone, Default, PartialEq, Eq)]
-pub struct TermManager {
-    inner: Grc<TermManagerInner>,
-}
-
 impl TermManager {
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     #[inline]
     fn new_term(&mut self, ty: TermType, sort: Sort) -> Term {
         match self.map.get(&ty) {
             Some(term) => term.clone(),
             None => {
                 let term = Term {
-                    tm: self.clone(),
                     inner: Grc::new(TermInner {
                         sort,
                         ty: ty.clone(),
@@ -464,167 +486,22 @@ impl TermManager {
     }
 
     #[inline]
-    pub fn bool_const(&mut self, c: bool) -> Term {
-        let term = TermType::Const(BvConst::new(&[c]));
-        self.new_term(term, Sort::Bv(1))
-    }
-
-    #[inline]
-    pub fn bv_const(&mut self, c: BvConst) -> Term {
-        let sort = Sort::Bv(c.len());
-        let term = TermType::Const(c);
-        self.new_term(term, sort)
-    }
-
-    #[inline]
-    pub fn bv_const_zero(&mut self, len: usize) -> Term {
-        let c = vec![false; len];
-        let term = TermType::Const(BvConst::new(&c));
-        self.new_term(term, Sort::Bv(len))
-    }
-
-    #[inline]
-    pub fn bv_const_one(&mut self, len: usize) -> Term {
-        let mut c = vec![false; len];
-        c[0] = true;
-        let term = TermType::Const(BvConst::new(&c));
-        self.new_term(term, Sort::Bv(len))
-    }
-
-    #[inline]
-    pub fn bv_const_ones(&mut self, len: usize) -> Term {
-        let c = vec![true; len];
-        let term = TermType::Const(BvConst::new(&c));
-        self.new_term(term, Sort::Bv(len))
-    }
-
-    #[inline]
-    pub fn bv_const_from_usize(&mut self, mut v: usize, width: usize) -> Term {
-        let mut bv = Vec::new();
-        while v > 0 {
-            bv.push(width & 1 == 1);
-            v >>= 1;
-        }
-        while bv.len() < width {
-            bv.push(false);
-        }
-        bv.truncate(width);
-        self.bv_const(BvConst::new(&bv))
-    }
-
-    #[inline]
-    pub fn new_op_term(
-        &mut self,
-        op: impl Into<DynOp>,
-        terms: impl IntoIterator<Item = impl AsRef<Term>>,
-    ) -> Term {
-        let op: DynOp = op.into();
-        let terms: Vec<Term> = terms.into_iter().map(|t| t.as_ref().clone()).collect();
-        if !op.is_core() {
-            return op.normalize(&terms);
-        }
-        let sort = op.sort(&terms);
-        let term = TermType::Op(OpTerm::new(op, terms));
-        self.new_term(term, sort)
-    }
-
-    #[inline]
-    pub fn new_op_terms_fold(
-        &mut self,
-        op: impl Into<DynOp> + Copy,
-        terms: impl IntoIterator<Item = impl AsRef<Term>>,
-    ) -> Term {
-        let mut terms = terms.into_iter();
-        let acc = terms.next().unwrap().as_ref().clone();
-        terms.fold(acc, |acc, x| {
-            self.new_op_term(op, &[acc, x.as_ref().clone()])
-        })
-    }
-
-    #[inline]
-    pub fn new_op_terms_elementwise<'a>(
-        &mut self,
-        op: impl Into<DynOp> + Copy,
-        x: impl IntoIterator<Item = &'a Term>,
-        y: impl IntoIterator<Item = &'a Term>,
-    ) -> TermVec {
-        x.into_iter()
-            .zip(y)
-            .map(|(x, y)| self.new_op_term(op, [x, y]))
-            .collect()
-    }
-
-    #[inline]
-    pub fn new_var(&mut self, sort: Sort) -> Term {
-        let id = self.num_var;
-        self.num_var += 1;
+    fn new_var(&mut self, sort: Sort) -> Term {
+        let id = self.avl_vid;
+        self.avl_vid += 1;
         let term = TermType::Var(id);
         self.new_term(term, sort)
     }
 
     #[inline]
-    pub fn garbage_collect(&mut self) {}
-
-    #[inline]
-    pub fn size(&self) -> usize {
-        self.map.len()
-    }
+    #[allow(unused)]
+    fn garbage_collect(&mut self) {}
 }
 
-impl Deref for TermManager {
-    type Target = TermManagerInner;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
+thread_local! {
+    static TERM_MANAGER: UnsafeCell<TermManager> = UnsafeCell::new(Default::default());
 }
 
-impl DerefMut for TermManager {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
+fn tm() -> &'static mut TermManager {
+    TERM_MANAGER.with(|cell| unsafe { &mut *cell.get() })
 }
-
-impl Debug for TermManager {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("TermManager")
-            .field("size", &self.size())
-            .finish()
-    }
-}
-
-// impl PartialOrd for TermCube {
-//     #[inline]
-//     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-//         Some(self.cmp(other))
-//     }
-// }
-
-// impl Ord for TermCube {
-//     #[inline]
-//     fn cmp(&self, other: &Self) -> Ordering {
-//         debug_assert!(self.is_sorted());
-//         debug_assert!(other.is_sorted());
-//         let min_index = self.len().min(other.len());
-//         for i in 0..min_index {
-//             match self[i].cmp(&other[i]) {
-//                 Ordering::Less => return Ordering::Less,
-//                 Ordering::Equal => {}
-//                 Ordering::Greater => return Ordering::Greater,
-//             }
-//         }
-//         self.len().cmp(&other.len())
-//     }
-// }
-
-// impl FromIterator<Term> for TermCube {
-//     #[inline]
-//     fn from_iter<T: IntoIterator<Item = Term>>(iter: T) -> Self {
-//         Self {
-//             cube: Vec::from_iter(iter),
-//         }
-//     }
-// }

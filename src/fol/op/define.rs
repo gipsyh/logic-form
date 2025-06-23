@@ -19,24 +19,16 @@ macro_rules! op_trait_impl {
     };
     (simplify $impl:expr) => {
         #[inline]
-        fn simplify(
-            &self,
-            tm: &mut crate::fol::TermManager,
-            terms: &[crate::fol::Term],
-        ) -> crate::fol::TermResult {
+        fn simplify(&self, terms: &[crate::fol::Term]) -> crate::fol::TermResult {
             debug_assert!(self.num_operand() == terms.len());
-            $impl(tm, terms)
+            $impl(terms)
         }
     };
     (bitblast $impl:expr) => {
         #[inline]
-        fn bitblast(
-            &self,
-            tm: &mut crate::fol::TermManager,
-            terms: &[crate::fol::TermVec],
-        ) -> crate::fol::TermVec {
+        fn bitblast(&self, terms: &[crate::fol::TermVec]) -> crate::fol::TermVec {
             debug_assert!(self.num_operand() == terms.len());
-            $impl(tm, terms)
+            $impl(terms)
         }
     };
     (cnf_encode $impl:expr) => {

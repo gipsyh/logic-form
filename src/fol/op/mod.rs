@@ -3,7 +3,7 @@ mod define;
 mod other_op;
 
 use super::term::Term;
-use crate::fol::{Sort, TermManager, TermResult, TermVec};
+use crate::fol::{Sort, TermResult, TermVec};
 use crate::{DagCnf, Lit};
 pub use core_op::*;
 use giputils::hash::GHashMap;
@@ -46,11 +46,11 @@ pub trait Op: Debug + 'static {
         panic!("{self:?} not support normalize");
     }
 
-    fn simplify(&self, _tm: &mut TermManager, _terms: &[Term]) -> TermResult {
+    fn simplify(&self, _terms: &[Term]) -> TermResult {
         TermResult::None
     }
 
-    fn bitblast(&self, _tm: &mut TermManager, _terms: &[TermVec]) -> TermVec {
+    fn bitblast(&self, _terms: &[TermVec]) -> TermVec {
         panic!("{self:?} not support biblast");
     }
 

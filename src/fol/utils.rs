@@ -1,4 +1,5 @@
-use super::{Term, TermManager, op::DynOp};
+use super::{Term, op::DynOp};
+use std::ops::{ControlFlow, FromResidual, Try};
 use std::{
     ops::{Deref, DerefMut, Index, IndexMut, Range, RangeInclusive, RangeTo},
     slice, vec,
@@ -16,19 +17,13 @@ impl TermVec {
     }
 
     #[inline]
-    pub fn get_manager(&self) -> TermManager {
-        self[0].get_tm()
-    }
-
-    #[inline]
     pub fn item(mut self) -> Term {
         self.data.pop().unwrap()
     }
 
     #[inline]
     pub fn fold(&self, op: impl Into<DynOp> + Copy) -> Term {
-        let mut tm = self.get_manager();
-        tm.new_op_terms_fold(op, self.iter())
+        Term::new_op_fold(op, self.iter())
     }
 
     // #[inline]
@@ -161,5 +156,36 @@ impl From<Vec<Term>> for TermVec {
     #[inline]
     fn from(value: Vec<Term>) -> Self {
         Self { data: value }
+    }
+}
+
+pub enum TermResult {
+    Some(Term),
+    None,
+}
+
+impl FromResidual for TermResult {
+    #[inline]
+    fn from_residual(residual: <Self as Try>::Residual) -> Self {
+        TermResult::Some(residual)
+    }
+}
+
+impl Try for TermResult {
+    type Output = ();
+
+    type Residual = Term;
+
+    #[inline]
+    fn from_output(_: Self::Output) -> Self {
+        TermResult::None
+    }
+
+    #[inline]
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            TermResult::Some(term) => ControlFlow::Break(term),
+            TermResult::None => ControlFlow::Continue(()),
+        }
     }
 }
