@@ -4,11 +4,10 @@ use crate::fol::TermVec;
 use crate::fol::op::Slice;
 use giputils::grc::Grc;
 use giputils::hash::GHashMap;
-use std::cell::UnsafeCell;
+use lazy_static::lazy_static;
 use std::fmt::{self, Debug};
 use std::iter::once;
 use std::ops::{DerefMut, Index};
-use std::thread_local;
 use std::{hash, ops};
 use std::{hash::Hash, ops::Deref};
 
@@ -498,10 +497,10 @@ impl TermManager {
     fn garbage_collect(&mut self) {}
 }
 
-thread_local! {
-    static TERM_MANAGER: UnsafeCell<TermManager> = UnsafeCell::new(Default::default());
+lazy_static! {
+    static ref TERM_MANAGER: Grc<TermManager> = Grc::new(Default::default());
 }
 
 fn tm() -> &'static mut TermManager {
-    TERM_MANAGER.with(|cell| unsafe { &mut *cell.get() })
+    unsafe { TERM_MANAGER.get_mut_from_unmut() }
 }
