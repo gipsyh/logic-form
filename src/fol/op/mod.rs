@@ -66,7 +66,7 @@ pub struct DynOp {
 
 impl DynOp {
     #[inline]
-    pub fn new(op: impl Op) -> Self {
+    fn create(op: impl Op) -> Self {
         Self { op: Rc::new(op) }
     }
 }
@@ -74,7 +74,7 @@ impl DynOp {
 impl<T: Op> From<T> for DynOp {
     #[inline]
     fn from(op: T) -> Self {
-        Self::new(op)
+        Self::from(op.name())
     }
 }
 

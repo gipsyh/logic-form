@@ -52,7 +52,7 @@ macro_rules! define_core_op {
     ($name:ident, $num_operand:expr, $($be_impl:ident: $impl:expr),*) => {
         #[derive(Hash, Debug, PartialEq, Clone, Copy)]
         pub struct $name;
-        inventory::submit! {crate::fol::op::DynOpCollect(|| crate::fol::op::DynOp::new($name))}
+        inventory::submit! {crate::fol::op::DynOpCollect(|| crate::fol::op::DynOp::create($name))}
         impl crate::fol::op::Op for $name {
             #[inline]
             fn num_operand(&self) -> usize {
@@ -91,7 +91,7 @@ macro_rules! define_non_core_op {
     ($name:ident, $num_operand:expr, $normalize:expr) => {
         #[derive(Hash, Debug, PartialEq, Clone, Copy)]
         pub struct $name;
-        inventory::submit! {crate::fol::op::DynOpCollect(|| crate::fol::op::DynOp::new($name))}
+        inventory::submit! {crate::fol::op::DynOpCollect(|| crate::fol::op::DynOp::create($name))}
         impl crate::fol::op::Op for $name {
             #[inline]
             fn num_operand(&self) -> usize {
