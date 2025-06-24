@@ -28,7 +28,7 @@ impl DagCnfSimplify {
             occur: None,
             max_var,
             cnf,
-            frozen: Default::default(),
+            frozen: GHashSet::from_iter([Var::CONST]),
             value,
             num_ocls,
         };
@@ -309,7 +309,7 @@ impl DagCnfSimplify {
         }
     }
 
-    pub fn const_simp_var(&mut self, v: Var) {
+    fn const_simp_var(&mut self, v: Var) {
         let cls = self.var_rels(v);
         let mut removed = Vec::new();
         for c in cls {
@@ -393,5 +393,25 @@ impl DagCnf {
             simp.froze(v);
         }
         simp.simplify()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{DagCnf, Lit, Var, simplify::DagCnfSimplify};
+
+    #[test]
+    fn test0() {
+        let mut dc = DagCnf::new();
+        dc.new_var_to(Var(4));
+        dc.new_and([Lit::from(1), Lit::from(2), Lit::from(3)]);
+        dc.new_and([Lit::from(1), Lit::from(2), Lit::from(3), Lit::from(4)]);
+        println!("{dc}");
+        let mut simp = DagCnfSimplify::new(&dc);
+        for v in Var::CONST..=dc.max_var() {
+            simp.froze(v);
+        }
+        let ndc = simp.simplify();
+        println!("{ndc}");
     }
 }

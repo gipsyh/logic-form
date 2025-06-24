@@ -64,16 +64,16 @@ impl Ord for LitOrdVec {
 
 impl LitOrdVec {
     #[inline]
-    pub fn new(mut cube: LitVec) -> Self {
-        cube.sort();
+    pub fn new(mut lv: LitVec) -> Self {
+        lv.sort();
         let mut sign = 0;
-        for l in cube.iter() {
+        for l in lv.iter() {
             sign |= 1 << (Into::<u32>::into(*l) % u128::BITS);
         }
         let mut hasher = AHasher::default();
-        cube.hash(&mut hasher);
+        lv.hash(&mut hasher);
         Self {
-            cube,
+            cube: lv,
             sign,
             hash: hasher.finish(),
         }

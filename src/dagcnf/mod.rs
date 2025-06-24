@@ -85,10 +85,7 @@ impl DagCnf {
     pub fn add_rel(&mut self, n: Var, rel: &[LitVec]) {
         self.new_var_to(n);
         if n.is_constant() {
-            if !rel.eq(&[LitVec::from(Lit::constant(true))]) {
-                dbg!(rel);
-                panic!();
-            }
+            assert!(rel.eq(&[LitVec::from(Lit::constant(true))]));
             return;
         }
         assert!(self.dep[n].is_empty() && self.cnf[n].is_empty());
