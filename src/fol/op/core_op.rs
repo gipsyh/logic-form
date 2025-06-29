@@ -284,8 +284,10 @@ fn sll_bitblast(terms: &[TermVec]) -> TermVec {
         return TermVec::from([&x[0] & !&y[0]]);
     }
     let width = x.len();
+    // ceil(log2(width))
+    let stages  = (usize::BITS - (width - 1).leading_zeros()) as usize;
     let mut res = x.clone();
-    for shift_bit in 0..width {
+    for shift_bit in 0..stages {
         let shift_step = 1 << shift_bit;
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
@@ -296,6 +298,11 @@ fn sll_bitblast(terms: &[TermVec]) -> TermVec {
             nres.push(Term::new_op(Ite, [shift, &res[j - shift_step], &res[j]]));
         }
         res = nres;
+    }
+
+    if stages < width {
+        let no_toobig = !Term::new_op_fold(Or, &y[stages..]);
+        res = res.into_iter().map(|b| Term::new_op(And, [&no_toobig, &b])).collect();
     }
     res
 }
@@ -308,8 +315,9 @@ fn srl_bitblast(terms: &[TermVec]) -> TermVec {
         return TermVec::from([&x[0] & !&y[0]]);
     }
     let width = x.len();
+    let stages  = (usize::BITS - (width - 1).leading_zeros()) as usize;
     let mut res = x.clone();
-    for shift_bit in 0..width {
+    for shift_bit in 0..stages {
         let shift_step = 1 << shift_bit;
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
@@ -322,6 +330,12 @@ fn srl_bitblast(terms: &[TermVec]) -> TermVec {
         }
         res = nres;
     }
+
+    if stages < width {
+        let not_toobig = !Term::new_op_fold(Or, &y[stages..]);
+        res = res.into_iter()
+            .map(|b| Term::new_op(And, [&not_toobig, &b])).collect();
+    }
     res
 }
 
@@ -333,8 +347,9 @@ fn sra_bitblast(terms: &[TermVec]) -> TermVec {
         return x.clone();
     }
     let width = x.len();
+    let stages  = (usize::BITS - (width - 1).leading_zeros()) as usize;
     let mut res = x.clone();
-    for shift_bit in 0..width {
+    for shift_bit in 0..stages {
         let shift_step = 1 << shift_bit;
         let c = width.saturating_sub(shift_step);
         let shift = &y[shift_bit];
@@ -346,6 +361,13 @@ fn sra_bitblast(terms: &[TermVec]) -> TermVec {
             nres.push(Term::new_op(Ite, [shift, &res[width - 1], &res[j]]));
         }
         res = nres;
+    }
+
+    if stages < width {
+        let not_toobig = !Term::new_op_fold(Or, &y[stages..]);
+        let sign = res[width - 1].clone();
+        res = res.into_iter()
+            .map(|b| Term::new_op(Ite, [&not_toobig, &b, &sign])).collect();
     }
     res
 }

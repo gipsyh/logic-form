@@ -1,7 +1,7 @@
 use super::{Term, op::DynOp};
 use std::ops::{ControlFlow, FromResidual, Try};
 use std::{
-    ops::{Deref, DerefMut, Index, IndexMut, Range, RangeInclusive, RangeTo},
+    ops::{Deref, DerefMut, Index, IndexMut, Range, RangeInclusive, RangeTo, RangeFrom},
     slice, vec,
 };
 
@@ -92,6 +92,14 @@ impl Index<RangeTo<usize>> for TermVec {
 
     #[inline]
     fn index(&self, index: RangeTo<usize>) -> &Self::Output {
+        self.data.index(index)
+    }
+}
+
+impl Index<RangeFrom<usize>> for TermVec {
+    type Output = [Term];
+    #[inline]
+    fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
         self.data.index(index)
     }
 }
