@@ -350,6 +350,72 @@ fn sra_bitblast(terms: &[TermVec]) -> TermVec {
     res
 }
 
+define_core_op!(Rol, 2, bitblast: rol_bitblast);
+fn rol_bitblast(terms: &[TermVec]) -> TermVec {
+    let (x, y) = (&terms[0], &terms[1]);
+    assert_eq!(x.len(), y.len());
+    let width = x.len();
+    // width = 1: rotation is a no-op
+    if width == 1 {
+        return x.clone();
+    }
+    let stages = match width & (width - 1) { // power of 2 ?
+        0 => (usize::BITS - (width - 1).leading_zeros()) as usize,
+        _ => width
+    };
+    assert!(stages < usize::BITS as usize);
+
+    let mut res = x.clone();
+    for shift_bit in 0..stages {
+        let shift_step = 1 << shift_bit;
+        let shift      = &y[shift_bit];
+        let mut next   = TermVec::new();
+        for j in 0..width {
+            // wrap-around index for rotate-left
+            let src = ((j + width).wrapping_sub(shift_step)) % width;
+            if src == j {
+                next.push(res[j].clone());
+            } else {
+                next.push(Term::new_op(Ite, [shift, &res[src], &res[j]]));
+            }
+        }
+        res = next;
+    }
+    res
+}
+
+define_core_op!(Ror, 2, bitblast: ror_bitblast);
+fn ror_bitblast(terms: &[TermVec]) -> TermVec {
+    let (x, y) = (&terms[0], &terms[1]);
+    assert_eq!(x.len(), y.len());
+    let width = x.len();
+    if width == 1 {
+        return x.clone();
+    }
+    let stages = match width & (width - 1) { // power of 2 ?
+        0 => (usize::BITS - (width - 1).leading_zeros()) as usize,
+        _ => width
+    };
+    assert!(stages < usize::BITS as usize);
+
+    let mut res = x.clone();
+    for shift_bit in 0..stages {
+        let shift_step = 1 << shift_bit;
+        let shift      = &y[shift_bit];
+        let mut next   = TermVec::new();
+        for j in 0..width {
+            let src = (j + shift_step) % width;
+            if src == j {
+                next.push(res[j].clone());
+            } else {
+                next.push(Term::new_op(Ite, [shift, &res[src], &res[j]]));
+            }
+        }
+        res = next;
+    }
+    res
+}
+
 define_core_op!(Ite, 3, sort: ite_sort, bitblast: ite_bitblast, cnf_encode: ite_cnf_encode, simplify: ite_simplify);
 fn ite_sort(terms: &[Term]) -> Sort {
     terms[1].sort()
