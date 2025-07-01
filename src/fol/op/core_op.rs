@@ -394,7 +394,7 @@ fn rol_bitblast(terms: &[TermVec]) -> TermVec {
         let mut next   = TermVec::new();
         for j in 0..width {
             // wrap-around index for rotate-left
-            let src = ((j + width).wrapping_sub(shift_step)) % width;
+            let src = (j + width - shift_step % width) % width;
             if src == j {
                 next.push(res[j].clone());
             } else {
@@ -597,15 +597,14 @@ fn scgate_s(r: &Term, d: &Term, ci: &Term, q: &Term) -> Term {
     &t2_or_r & !&t2_and_r
 }
 
-fn udiv_urem_bitblast(ain: &TermVec, din: &TermVec) -> (TermVec, TermVec) {
-    let a: Vec<Term> = ain.iter().rev().cloned().collect();
-    let nd: Vec<Term> = din.iter().rev().map(|t| !t).collect();
+fn udiv_urem_bitblast(a: &TermVec, din: &TermVec) -> (TermVec, TermVec) {
+    let nd: Vec<Term> = din.iter().map(|t| !t).collect();
     let size = a.len();
     let mut s = vec![vec![Term::bool_const(false); size+1]; size+1];
     let mut c = vec![vec![Term::bool_const(false); size+1]; size+1];
     let mut q = TermVec::new();
 
-    for j in 0..a.len() {
+    for j in 0..size {
         c[j][0] = Term::bool_const(true);
         s[j][0] = a[size - j - 1].clone();
         for i in 0..size {
@@ -616,7 +615,8 @@ fn udiv_urem_bitblast(ain: &TermVec, din: &TermVec) -> (TermVec, TermVec) {
             s[j+1][i+1] = scgate_s(&s[j][i], &nd[i], &c[j][i], &q[j]);
         }
     }
-    (q, s[size][1..=size].iter().rev().cloned().collect())
+    q.reverse(); // quotients come MSB first
+    (q, TermVec::from(s[size][1..=size].to_vec()))
 }
 
 define_core_op!(Udiv, 2, bitblast: udiv_bitblast);
