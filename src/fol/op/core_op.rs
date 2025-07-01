@@ -581,6 +581,55 @@ fn mul_bitblast(terms: &[TermVec]) -> TermVec {
     res
 }
 
+fn scgate_co(r: &Term, d: &Term, ci: &Term) -> Term {
+    let d_or_ci = d | ci;
+    let d_and_ci = d & ci;
+    let m = &d_or_ci & r;
+    d_and_ci | &m
+}
+fn scgate_s(r: &Term, d: &Term, ci: &Term, q: &Term) -> Term {
+    let d_or_ci = d | ci;
+    let d_and_ci = d & ci;
+    let t1 = &d_or_ci & !&d_and_ci;
+    let t2 = &t1 & q;
+    let t2_or_r = &t2 | r;
+    let t2_and_r = &t2 & r;
+    &t2_or_r & !&t2_and_r
+}
+
+fn udiv_urem_bitblast(ain: &TermVec, din: &TermVec) -> (TermVec, TermVec) {
+    let a: Vec<Term> = ain.iter().rev().cloned().collect();
+    let nd: Vec<Term> = din.iter().rev().map(|t| !t).collect();
+    let size = a.len();
+    let mut s = vec![vec![Term::bool_const(false); size+1]; size+1];
+    let mut c = vec![vec![Term::bool_const(false); size+1]; size+1];
+    let mut q = TermVec::new();
+
+    for j in 0..a.len() {
+        c[j][0] = Term::bool_const(true);
+        s[j][0] = a[size - j - 1].clone();
+        for i in 0..size {
+            c[j][i+1] = scgate_co(&s[j][i], &nd[i], &c[j][i]);
+        }
+        q.push(&c[j][size] | &s[j][size]);
+        for i in 0..size {
+            s[j+1][i+1] = scgate_s(&s[j][i], &nd[i], &c[j][i], &q[j]);
+        }
+    }
+    (q, s[size][1..=size].iter().rev().cloned().collect())
+}
+
+define_core_op!(Udiv, 2, bitblast: udiv_bitblast);
+fn udiv_bitblast(terms: &[TermVec]) -> TermVec {
+    let (q, _) = udiv_urem_bitblast(&terms[0], &terms[1]);
+    q
+}
+define_core_op!(Urem, 2, bitblast: urem_bitblast);
+fn urem_bitblast(terms: &[TermVec]) -> TermVec {
+    let (_, r) = udiv_urem_bitblast(&terms[0], &terms[1]);
+    r
+}
+
 define_core_op!(Read, 2, sort: read_sort, bitblast: read_bitblast);
 fn read_sort(terms: &[Term]) -> Sort {
     let (_, e) = terms[0].sort().array();
