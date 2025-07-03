@@ -284,8 +284,10 @@ fn sll_bitblast(terms: &[TermVec]) -> TermVec {
         return TermVec::from([&x[0] & !&y[0]]);
     }
     let width = x.len();
+    // ceil(log2(width))
+    let stages  = (usize::BITS - (width - 1).leading_zeros()) as usize;
     let mut res = x.clone();
-    for shift_bit in 0..width {
+    for shift_bit in 0..stages {
         let shift_step = 1 << shift_bit;
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
@@ -296,6 +298,11 @@ fn sll_bitblast(terms: &[TermVec]) -> TermVec {
             nres.push(Term::new_op(Ite, [shift, &res[j - shift_step], &res[j]]));
         }
         res = nres;
+    }
+
+    if stages < width {
+        let no_toobig = !Term::new_op_fold(Or, &y[stages..]);
+        res = res.into_iter().map(|b| Term::new_op(And, [&no_toobig, &b])).collect();
     }
     res
 }
@@ -308,8 +315,9 @@ fn srl_bitblast(terms: &[TermVec]) -> TermVec {
         return TermVec::from([&x[0] & !&y[0]]);
     }
     let width = x.len();
+    let stages  = (usize::BITS - (width - 1).leading_zeros()) as usize;
     let mut res = x.clone();
-    for shift_bit in 0..width {
+    for shift_bit in 0..stages {
         let shift_step = 1 << shift_bit;
         let shift = &y[shift_bit];
         let mut nres = TermVec::new();
@@ -322,6 +330,12 @@ fn srl_bitblast(terms: &[TermVec]) -> TermVec {
         }
         res = nres;
     }
+
+    if stages < width {
+        let not_toobig = !Term::new_op_fold(Or, &y[stages..]);
+        res = res.into_iter()
+            .map(|b| Term::new_op(And, [&not_toobig, &b])).collect();
+    }
     res
 }
 
@@ -333,8 +347,9 @@ fn sra_bitblast(terms: &[TermVec]) -> TermVec {
         return x.clone();
     }
     let width = x.len();
+    let stages  = (usize::BITS - (width - 1).leading_zeros()) as usize;
     let mut res = x.clone();
-    for shift_bit in 0..width {
+    for shift_bit in 0..stages {
         let shift_step = 1 << shift_bit;
         let c = width.saturating_sub(shift_step);
         let shift = &y[shift_bit];
@@ -346,6 +361,79 @@ fn sra_bitblast(terms: &[TermVec]) -> TermVec {
             nres.push(Term::new_op(Ite, [shift, &res[width - 1], &res[j]]));
         }
         res = nres;
+    }
+
+    if stages < width {
+        let not_toobig = !Term::new_op_fold(Or, &y[stages..]);
+        let sign = res[width - 1].clone();
+        res = res.into_iter()
+            .map(|b| Term::new_op(Ite, [&not_toobig, &b, &sign])).collect();
+    }
+    res
+}
+
+define_core_op!(Rol, 2, bitblast: rol_bitblast);
+fn rol_bitblast(terms: &[TermVec]) -> TermVec {
+    let (x, y) = (&terms[0], &terms[1]);
+    assert_eq!(x.len(), y.len());
+    let width = x.len();
+    // width = 1: rotation is a no-op
+    if width == 1 {
+        return x.clone();
+    }
+    let stages = match width & (width - 1) { // power of 2 ?
+        0 => (usize::BITS - (width - 1).leading_zeros()) as usize,
+        _ => width
+    };
+    assert!(stages < usize::BITS as usize);
+
+    let mut res = x.clone();
+    for shift_bit in 0..stages {
+        let shift_step = 1 << shift_bit;
+        let shift      = &y[shift_bit];
+        let mut next   = TermVec::new();
+        for j in 0..width {
+            // wrap-around index for rotate-left
+            let src = (j + width - shift_step % width) % width;
+            if src == j {
+                next.push(res[j].clone());
+            } else {
+                next.push(Term::new_op(Ite, [shift, &res[src], &res[j]]));
+            }
+        }
+        res = next;
+    }
+    res
+}
+
+define_core_op!(Ror, 2, bitblast: ror_bitblast);
+fn ror_bitblast(terms: &[TermVec]) -> TermVec {
+    let (x, y) = (&terms[0], &terms[1]);
+    assert_eq!(x.len(), y.len());
+    let width = x.len();
+    if width == 1 {
+        return x.clone();
+    }
+    let stages = match width & (width - 1) { // power of 2 ?
+        0 => (usize::BITS - (width - 1).leading_zeros()) as usize,
+        _ => width
+    };
+    assert!(stages < usize::BITS as usize);
+
+    let mut res = x.clone();
+    for shift_bit in 0..stages {
+        let shift_step = 1 << shift_bit;
+        let shift      = &y[shift_bit];
+        let mut next   = TermVec::new();
+        for j in 0..width {
+            let src = (j + shift_step) % width;
+            if src == j {
+                next.push(res[j].clone());
+            } else {
+                next.push(Term::new_op(Ite, [shift, &res[src], &res[j]]));
+            }
+        }
+        res = next;
     }
     res
 }
@@ -491,6 +579,55 @@ fn mul_bitblast(terms: &[TermVec]) -> TermVec {
         }
     }
     res
+}
+
+fn scgate_co(r: &Term, d: &Term, ci: &Term) -> Term {
+    let d_or_ci = d | ci;
+    let d_and_ci = d & ci;
+    let m = &d_or_ci & r;
+    d_and_ci | &m
+}
+fn scgate_s(r: &Term, d: &Term, ci: &Term, q: &Term) -> Term {
+    let d_or_ci = d | ci;
+    let d_and_ci = d & ci;
+    let t1 = &d_or_ci & !&d_and_ci;
+    let t2 = &t1 & q;
+    let t2_or_r = &t2 | r;
+    let t2_and_r = &t2 & r;
+    &t2_or_r & !&t2_and_r
+}
+
+fn udiv_urem_bitblast(a: &TermVec, din: &TermVec) -> (TermVec, TermVec) {
+    let nd: Vec<Term> = din.iter().map(|t| !t).collect();
+    let size = a.len();
+    let mut s = vec![vec![Term::bool_const(false); size+1]; size+1];
+    let mut c = vec![vec![Term::bool_const(false); size+1]; size+1];
+    let mut q = TermVec::new();
+
+    for j in 0..size {
+        c[j][0] = Term::bool_const(true);
+        s[j][0] = a[size - j - 1].clone();
+        for i in 0..size {
+            c[j][i+1] = scgate_co(&s[j][i], &nd[i], &c[j][i]);
+        }
+        q.push(&c[j][size] | &s[j][size]);
+        for i in 0..size {
+            s[j+1][i+1] = scgate_s(&s[j][i], &nd[i], &c[j][i], &q[j]);
+        }
+    }
+    q.reverse(); // quotients come MSB first
+    (q, TermVec::from(s[size][1..=size].to_vec()))
+}
+
+define_core_op!(Udiv, 2, bitblast: udiv_bitblast);
+fn udiv_bitblast(terms: &[TermVec]) -> TermVec {
+    let (q, _) = udiv_urem_bitblast(&terms[0], &terms[1]);
+    q
+}
+define_core_op!(Urem, 2, bitblast: urem_bitblast);
+fn urem_bitblast(terms: &[TermVec]) -> TermVec {
+    let (_, r) = udiv_urem_bitblast(&terms[0], &terms[1]);
+    r
 }
 
 define_core_op!(Read, 2, sort: read_sort, bitblast: read_bitblast);
